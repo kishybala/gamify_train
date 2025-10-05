@@ -33,9 +33,11 @@ export default function LoginPage() {
       if (docSnap.exists()) {
         const userData = docSnap.data();
         if (userData.role === role) {
-          alert(`Welcome ${userData.role}!`);
-          navigate("/dashboard"); // redirect wherever you want
-        } else {
+  alert(`Welcome ${userData.role}!`);
+  navigate("/dashboard"); // redirect
+}
+ // redirect wherever you want
+         else {
           alert(`This account is not registered as ${role}`);
         }
       } else {
