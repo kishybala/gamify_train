@@ -1,6 +1,8 @@
-import React from 'react';
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase"; // adjust path if needed
 
 export default function SignupPage() {
   const [form, setForm] = useState({ username: "", password: "", role: "student" });
@@ -10,10 +12,30 @@ export default function SignupPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    console.log("Signup details", form);
-    navigate("/");
+    try {
+      // Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        form.username,  // we are treating username as email here
+        form.password
+      );
+
+      const user = userCredential.user;
+
+      // Save role in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        email: form.username,
+        role: form.role,
+      });
+
+      alert("Account created successfully!");
+      navigate("/"); // back to login
+    } catch (error) {
+      console.error("Signup error:", error.message);
+      alert(error.message);
+    }
   };
 
   return (
@@ -22,9 +44,9 @@ export default function SignupPage() {
         <h1 className="text-3xl font-bold text-yellow-600 text-center mb-4">Register</h1>
         <form onSubmit={handleSignup} className="space-y-3">
           <input
-            type="text"
+            type="email"
             name="username"
-            placeholder="Username"
+            placeholder="Email"
             value={form.username}
             onChange={handleChange}
             className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
