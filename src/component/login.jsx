@@ -1,6 +1,9 @@
-import React from 'react';
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase"; // adjust path if needed
+import bg from "../assets/image.png";
 
 export default function LoginPage() {
   const [role, setRole] = useState("student");
@@ -11,17 +14,45 @@ export default function LoginPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    console.log("Login as", role, form);
-    // Here you can add login API call
+    try {
+      // Log in with Firebase
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        form.username,
+        form.password
+      );
+
+      const user = userCredential.user;
+
+      // Get role from Firestore
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        if (userData.role === role) {
+          alert(`Welcome ${userData.role}!`);
+          navigate("/dashboard"); // redirect wherever you want
+        } else {
+          alert(`This account is not registered as ${role}`);
+        }
+      } else {
+        alert("No user data found");
+      }
+    } catch (error) {
+      console.error("Login error:", error.message);
+      alert(error.message);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-300 to-yellow-200 relative">
-      {/* Card */}
-      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400 relative z-10">
-        {/* Title */}
+    
+     <div
+  className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+  style={{ backgroundImage: `url(${bg})` }}
+      >      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400 relative z-10">
         <div className="text-center mb-6">
           <h1 className="text-4xl font-extrabold text-yellow-600">Golden Farm</h1>
           <p className="text-gray-600">Login to your account</p>
@@ -45,9 +76,9 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-3">
           <input
-            type="text"
+            type="email"
             name="username"
-            placeholder="Username"
+            placeholder="Email"
             value={form.username}
             onChange={handleChange}
             className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
@@ -69,19 +100,6 @@ export default function LoginPage() {
             Login
           </button>
         </form>
-
-        {/* Social Logins */}
-        <div className="mt-4 text-center">
-          <p className="text-gray-500 text-sm mb-2">or sign in with</p>
-          <div className="flex justify-center gap-4">
-            <button className="bg-white p-2 rounded-full shadow border hover:bg-gray-100">
-              <i className="fab fa-facebook-f text-blue-600"></i>
-            </button>
-            <button className="bg-white p-2 rounded-full shadow border hover:bg-gray-100">
-              <i className="fab fa-google text-red-500"></i>
-            </button>
-          </div>
-        </div>
 
         {/* Signup link */}
         <div className="mt-4 text-center">
