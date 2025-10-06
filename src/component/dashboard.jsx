@@ -202,14 +202,14 @@ export default function Dashboard() {
           </Link>
 
           <Link
-            to="/profile"
-            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+            to="/AddTask"
+            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
           >
-            <User className="w-5 h-5 mr-2" /> Profile
+            <User className="w-5 h-5 mr-2" /> Add Task
           </Link>
         </nav>
 
-        {/* Content (sirf dashboard pe show hoga) */}
+        {/* Content (Dashboard Task Board) */}
         <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
           <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
