@@ -16,6 +16,7 @@ function App() {
          <Route path="/dashboard" element={<Dashboard />} />
          <Route path="/Leaderboard" element={<Leaderboard />} />
          <Route path="/AddTask" element={<AddTask />} />
+         
 
       </Routes>
     </Router>
