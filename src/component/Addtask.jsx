@@ -1,25 +1,64 @@
 import React, { useState } from "react";
-import { Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Zap } from "lucide-react";
 
-export default function AddTask() {
+export default function AddTask({ currentUser, tasks, setTasks }) {
   const navigate = useNavigate();
+
+  // Access control
+  if (!(currentUser.role === "Council" || currentUser.role === "Mentor")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-600">
+        You do not have access to add tasks.
+      </div>
+    );
+  }
+
   const [taskName, setTaskName] = useState("");
   const [desc, setDesc] = useState("");
+  const [points, setPoints] = useState(10);
+  const [category, setCategory] = useState("Behavior");
+  const [assignedTo, setAssignedTo] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [statusMessage, setStatusMessage] = useState(null);
 
-  const handleSubmit = () => {
-    if (!taskName || !desc) {
-        setStatusMessage({ type: 'error', text: 'Please fill in both fields!' });
-        return;
-    }
-    console.log(`Task: ${taskName}, Desc: ${desc}`);
-    setStatusMessage({ type: 'success', text: `Task "${taskName}" submitted!` });
-    setTaskName(""); setDesc("");
-    setTimeout(() => setStatusMessage(null), 4000);
-  };
+  const students = [
+    { id: "s1", name: "Alice" },
+    { id: "s2", name: "Bob" },
+    { id: "s3", name: "Charlie" },
+  ];
 
   const inputClass = "w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none";
+
+  const handleSubmit = () => {
+    if (!taskName || !desc || !assignedTo) {
+      setStatusMessage({ type: "error", text: "Please fill all required fields!" });
+      return;
+    }
+
+    const newTask = {
+      id: Date.now(),
+      title: taskName,
+      description: desc,
+      points,
+      category,
+      assignedTo,
+      deadline,
+      status: "Pending",
+      volunteersList: [],
+      required: 1,
+      isVolunteered: false,
+      tag: category
+    };
+
+    setTasks([newTask, ...tasks]);
+    setStatusMessage({ type: "success", text: `Task "${taskName}" submitted!` });
+
+    // Reset form
+    setTaskName(""); setDesc(""); setPoints(10);
+    setCategory("Behavior"); setAssignedTo(""); setDeadline("");
+    setTimeout(() => setStatusMessage(null), 4000);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 font-sans">
@@ -30,8 +69,8 @@ export default function AddTask() {
 
         {statusMessage && (
           <div className={`p-4 mb-6 rounded-lg font-semibold ${
-            statusMessage.type === 'success' 
-              ? 'bg-green-100 text-green-700 border border-green-300' 
+            statusMessage.type === 'success'
+              ? 'bg-green-100 text-green-700 border border-green-300'
               : 'bg-red-100 text-red-700 border border-red-300'
           }`}>
             {statusMessage.text}
@@ -40,20 +79,37 @@ export default function AddTask() {
 
         <div className="text-left">
           <label className="block text-gray-700 font-semibold mb-1">Task Name:</label>
-          <input type="text" value={taskName} onChange={(e)=>setTaskName(e.target.value)}
-            className={inputClass} placeholder="e.g., Organize Study Group" />
+          <input type="text" value={taskName} onChange={e => setTaskName(e.target.value)} className={inputClass} />
 
           <label className="block text-gray-700 font-semibold mb-1">Task Description:</label>
-          <textarea value={desc} onChange={(e)=>setDesc(e.target.value)}
-            rows="5" className={inputClass} placeholder="Describe task & XP justification" />
+          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows="4" className={inputClass} />
+
+          <label className="block text-gray-700 font-semibold mb-1">Points / XP:</label>
+          <input type="number" value={points} onChange={e => setPoints(e.target.value)} className={inputClass} min="1" />
+
+          <label className="block text-gray-700 font-semibold mb-1">Category / Skill:</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} className={inputClass}>
+            <option>Behavior</option>
+            <option>Teamwork</option>
+            <option>Creativity</option>
+            <option>Math Skills</option>
+            <option>Reading</option>
+          </select>
+
+          <label className="block text-gray-700 font-semibold mb-1">Assign To:</label>
+          <select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className={inputClass}>
+            <option value="">Select Student</option>
+            {students.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+          </select>
+
+          <label className="block text-gray-700 font-semibold mb-1">Deadline:</label>
+          <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className={inputClass} />
 
           <div className="flex flex-col space-y-3 mt-6">
-            <button onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-teal-500 hover:to-green-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition duration-300 transform active:scale-[0.98]">
+            <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg">
               Submit Task
             </button>
-            <button onClick={()=>navigate("/")}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-2xl transition duration-300 transform active:scale-[0.98]">
+            <button onClick={()=>navigate("/dashboard")} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-2xl">
               ← Back to Dashboard
             </button>
           </div>
