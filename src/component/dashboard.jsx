@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from "react-router-dom";
+
 import {
   Trophy,
   Award,
@@ -130,7 +132,6 @@ const TaskCard = ({ task, onToggleVolunteer, currentUserId }) => {
 export default function Dashboard() {
   const [stats] = useState(initialStats);
   const [tasks, setTasks] = useState(initialTasks);
-  const [activeTab, setActiveTab] = useState('Dashboard');
   const currentUserId = "current_user_123";
 
   const handleToggleVolunteer = (taskId) => {
@@ -147,13 +148,6 @@ export default function Dashboard() {
       })
     );
   };
-
-  const navItems = [
-    { label: 'Dashboard', icon: Home },
-    { label: 'Badges', icon: Award },
-    { label: 'Leaderboard', icon: Trophy },
-    { label: 'Profile', icon: User },
-  ];
 
   return (
     <div className="min-h-screen font-inter bg-gray-50">
@@ -184,28 +178,44 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Tabs */}
+        {/* Tabs with Router Links */}
         <nav className="flex space-x-1 bg-white p-2 rounded-xl shadow-lg mb-8 overflow-x-auto">
-          {navItems.map(item => (
-            <button key={item.label} onClick={() => setActiveTab(item.label)} className={`flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === item.label ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'}`}>
-              <item.icon className="w-5 h-5 mr-2" /> {item.label}
-            </button>
-          ))}
+          <Link
+            to="/"
+            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
+          >
+            <Home className="w-5 h-5 mr-2" /> Dashboard
+          </Link>
+
+          <Link
+            to="/badges"
+            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+          >
+            <Award className="w-5 h-5 mr-2" /> Badges
+          </Link>
+
+          <Link
+            to="/leaderboard"
+            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+          >
+            <Trophy className="w-5 h-5 mr-2" /> Leaderboard
+          </Link>
+
+          <Link
+            to="/profile"
+            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+          >
+            <User className="w-5 h-5 mr-2" /> Profile
+          </Link>
         </nav>
 
-        {/* Content */}
-        {activeTab === 'Dashboard' ? (
-          <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
-            <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tasks.map(task => <TaskCard key={task.id} task={task} onToggleVolunteer={handleToggleVolunteer} currentUserId={currentUserId} />)}
-            </div>
+        {/* Content (sirf dashboard pe show hoga) */}
+        <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+          <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tasks.map(task => <TaskCard key={task.id} task={task} onToggleVolunteer={handleToggleVolunteer} currentUserId={currentUserId} />)}
           </div>
-        ) : (
-          <div className="p-12 text-center bg-white rounded-2xl shadow-xl border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-700">Content for {activeTab} will go here!</h3>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
