@@ -8,6 +8,8 @@ import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
 import Badge from './component/badges';
+import MentorDashboard from './component/mentordash'; // 👈 Add this
+
 
 // --- Mock Current User ---
 const currentUser = {
@@ -38,10 +40,22 @@ export default function App() {
           path="/leaderboard"
           element={<Leaderboard currentUser={currentUser} />}
         />
+
+
         <Route
-          path="/addtask"
-          element={<AddTask currentUser={currentUser} tasks={tasks} setTasks={setTasks} />}
-        />
+  path="/mentor-dashboard"
+  element={<MentorDashboard tasks={tasks} setTasks={setTasks} currentUser={currentUser} />}
+/>
+
+        <Route
+  path="/addtask"
+  element={
+    (currentUser.role === "Council" || currentUser.role === "Mentor") ? 
+    <AddTask currentUser={currentUser} tasks={tasks} setTasks={setTasks} /> 
+    : <Dashboard tasks={tasks} setTasks={setTasks} currentUser={currentUser} />
+  }
+/>
+
         <Route
           path="/badges"
           element={<Badge currentUser={currentUser} />}
