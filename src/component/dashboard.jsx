@@ -335,6 +335,18 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             </div>
           </div>
 
+        ) : (
+          <div>
+  {activeTab === 'Dashboard' && <DashboardContent tasks={tasks} onToggleVolunteer={handleToggleVolunteer} currentUserId={currentUserId} />}
+  {activeTab === 'Badges' && <BadgesPage tasksCompleted={INITIAL_TASKS_COMPLETED} />}
+  {activeTab === 'Leaderboard' && <LeaderboardPage />}
+  {activeTab === 'Profile' && <ProfilePage />}
+</div>
+
+        )}
+      </div>
+
+
           {/* Modal */}
           {modalOpen && (
             <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center">
@@ -356,6 +368,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
           )}
         </>
       )}
+
     </div>
   );
 }

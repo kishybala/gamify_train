@@ -7,6 +7,11 @@ import SignupPage from './component/signup';
 import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
+
+import  Badge  from './component/badges';
+import Pointer from "./component/point";
+
+
 import Badge from './component/badges';
 import MentorDashboard from './component/mentordash'; // 👈 Add this
 
@@ -21,15 +26,26 @@ const currentUser = {
 export default function App() {
   const [tasks, setTasks] = useState([]); // All tasks stored here
 
+
   return (
     <Router>
       <Routes>
+
+        <Route path="/" element={<LoginPage />} />
+         <Route path="/signup" element={<SignupPage />} />
+         <Route path="/dashboard" element={<Dashboard />} />
+         <Route path="/Leaderboard" element={<Leaderboard />} />
+         <Route path="/AddTask" element={<AddTask />} />
+         <Route path="/Badges" element={<Badge />} />
+         <Route path="/Point" element={<Pointer />} />
+
         {/* 🏠 Home Page (Intro + Role Selection) */}
         <Route path="/" element={<Home />} />
 
         {/* 🔐 Auth Pages */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+
 
         {/* 🧭 App Pages */}
         <Route
