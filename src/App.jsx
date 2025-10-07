@@ -12,7 +12,7 @@ import  Badge  from './component/badges';
 import Pointer from "./component/point";
 
 
-import Badge from './component/badges';
+
 import MentorDashboard from './component/mentordash'; // 👈 Add this
 
 
