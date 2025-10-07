@@ -46,7 +46,7 @@ export default function AddTask({ currentUser, tasks, setTasks }) {
       category,
       assignedTo,
       deadline,
-      status: "Pending",
+      status: "Pending",  // ✅ Task ka initial status
       volunteersList: [],
       required: 1,
       isVolunteered: false,
