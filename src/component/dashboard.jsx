@@ -14,8 +14,13 @@ import {
   Zap,
   Menu,
   Trash2,
-  X
+
 } from "lucide-react";
+
+  X,
+  Bell
+} from 'lucide-react';
+
 import { signOut } from "firebase/auth";
 import { auth, db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -40,12 +45,17 @@ const TaskCard = ({ task, onToggleVolunteer, userData, onRemoveTask }) => {
     buttonClasses =
       "bg-indigo-100 text-indigo-700 shadow-inner border border-indigo-300";
   } else if (isVolunteered) {
+
     buttonContent = (
       <>
         <Hand className="w-5 h-5 mr-2 rotate-180" /> Lower Hand
       </>
     );
     buttonClasses = "bg-red-500 text-white hover:bg-red-600 shadow-md";
+
+    buttonContent = <> <Hand className="w-5 h-5 mr-2 rotate-180" /> Lower Hand </>;
+    buttonClasses = 'bg-red-500 text-white hover:bg-red-600 shadow-md transform hover:scale-105 transition-all';
+
   } else if (isFull) {
     buttonContent = (
       <>
@@ -54,6 +64,7 @@ const TaskCard = ({ task, onToggleVolunteer, userData, onRemoveTask }) => {
     );
     buttonClasses = "bg-gray-400 text-white cursor-not-allowed shadow-inner";
   } else {
+
     buttonContent = (
       <>
         <Hand className="w-5 h-5 mr-2" /> Raise Hand
@@ -65,6 +76,15 @@ const TaskCard = ({ task, onToggleVolunteer, userData, onRemoveTask }) => {
   return (
     <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative">
       {(userData?.role === "Council" || userData?.role === "Mentor") && (
+
+    buttonContent = <> <Hand className="w-5 h-5 mr-2" /> Raise Hand </>;
+    buttonClasses = 'bg-green-500 text-white hover:bg-green-600 shadow-md transform hover:scale-105 transition-all';
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
+      {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
+
         <button
           onClick={() => onRemoveTask(task.id)}
           className="absolute top-2 right-2 text-red-500 hover:text-red-700"
@@ -142,10 +162,15 @@ export default function Dashboard({ tasks, setTasks }) {
   const [userData, setUserData] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [blinkBell, setBlinkBell] = useState(false);
   const navigate = useNavigate();
   const [profilePic, setProfilePic] = useState(
     localStorage.getItem("profilePic") || null
   );
+
 
   // ✅ Fetch user data from Firestore after login
   useEffect(() => {
@@ -163,16 +188,51 @@ export default function Dashboard({ tasks, setTasks }) {
   }, [currentUser]);
 
   // ✅ Load saved tasks from localStorage
+
+  const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+  const currentUserData = currentUser || storedUser || { role: "Guest", id: null, name: "Guest" };
+  const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
+
+  // Show profile-only first
+
   useEffect(() => {
     const savedTasks = localStorage.getItem("dashboardTasks");
     if (savedTasks) setTasks(JSON.parse(savedTasks));
+
+    const timer = setTimeout(() => {
+      setShowDashboard(true);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [setTasks]);
 
+  // --- Notifications ---
   useEffect(() => {
     if (tasks && tasks.length > 0) {
+
+      setNotifications(prev => {
+        const existingIds = prev.map(n => n.id);
+        const newNotifications = tasks
+          .filter(t => !existingIds.includes(t.id))
+          .map(t => ({ id: t.id, title: t.title, time: Date.now() }));
+        return [...prev, ...newNotifications];
+      });
+
+      if (tasks.some(t => !notifications.find(n => n.id === t.id))) {
+        setBlinkBell(true);
+        setTimeout(() => setBlinkBell(false), 3000);
+      }
+
+
       localStorage.setItem("dashboardTasks", JSON.stringify(tasks));
     }
   }, [tasks]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNotifications(prev => prev.filter(n => Date.now() - n.time < 60000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleToggleVolunteer = (taskId) => {
     const updatedTasks = tasks.map((task) => {
@@ -224,6 +284,7 @@ export default function Dashboard({ tasks, setTasks }) {
 
   return (
     <div className="min-h-screen font-inter bg-gray-50">
+
       <div
         className="absolute inset-0 z-0 opacity-10"
         style={{
@@ -272,15 +333,45 @@ export default function Dashboard({ tasks, setTasks }) {
                 <div className="text-gray-500">Loading profile...</div>
               )}
             </div>
-          </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md">
-              <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
+      {/* Profile-only view with video + animation */}
+      {!showDashboard ? (
+        <div className="flex flex-col items-center justify-center h-screen text-center relative">
+          <video autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-30">
+            <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4" />
+          </video>
+          <div className="relative z-10 flex flex-col items-center">
+            <img
+              src={profilePic || "https://via.placeholder.com/90"}
+              alt="Profile"
+              className="w-32 h-32 rounded-full border-4 border-green-400 object-cover mb-4 shadow-lg animate-bounce"
+            />
+            <h1 className="text-3xl font-bold text-green-700 animate-pulse">Welcome, {currentUserData.name} 🌸</h1>
+            <p className="text-gray-600 mt-2 animate-pulse">Loading your dashboard...</p>
+
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Dashboard Content */}
+          <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center transform transition-all hover:shadow-2xl duration-300">
+            <div className="flex items-center space-x-4">
+              <div className="relative w-30 h-30">
+                <img
+                  src={profilePic || "https://via.placeholder.com/90"}
+                  alt="Profile"
+                  className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
+                />
+                <label htmlFor="profileUpload" className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs">✏️</label>
+                <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
+              </div>
+              <div>
+                <span className="text-2xl font-extrabold text-green-600 mr-2">Campus Heroine</span>
+                <div className="text-xl font-bold text-gray-800">Welcome, <span className="text-green-600">{currentUserData.name}</span>!</div>
+                <span className="text-sm text-gray-500">({currentUserData.role})</span>
+              </div>
             </div>
-            <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md">
-              <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
-            </div>
+
 
             <button
               onClick={() => setModalOpen(true)}
@@ -385,13 +476,107 @@ export default function Dashboard({ tasks, setTasks }) {
                     <p className="text-sm text-gray-500">
                       Volunteers: {task.volunteersList.join(", ") || "None"}
                     </p>
-                  </div>
-                ))}
+
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md transform hover:scale-105 transition-all duration-300">
+                <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
               </div>
+              <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md transform hover:scale-105 transition-all duration-300">
+                <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
+              </div>
+              <button onClick={() => setModalOpen(true)} className="bg-blue-500 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 hover:scale-105 transition-all duration-300">
+                View Volunteers
+              </button>
+
+              {/* Toggle Menu */}
+              <div className="relative">
+                <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 hover:text-green-500 transition duration-150 p-2 rounded-full hover:bg-gray-100">
+                  <Menu className="w-6 h-6" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                    <Link to="/dashboard" className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 rounded-t-xl font-semibold" onClick={() => setMenuOpen(false)}><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
+                    <Link to="/badges" className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold" onClick={() => setMenuOpen(false)}><Award className="w-5 h-5 mr-2" /> Badges</Link>
+                    <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 font-semibold" onClick={() => setMenuOpen(false)}><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
+                    {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
+                      <Link to="/AddTask" className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold rounded-b-xl" onClick={() => setMenuOpen(false)}><User className="w-5 h-5 mr-2" /> Add Task</Link>
+                    )}
+                    <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 hover:text-red-600 font-semibold rounded-b-xl"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
+                  </div>
+                )}
+              </div>
+
+              {/* Notification Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setBellOpen(!bellOpen)}
+                  className={`flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100 ${blinkBell ? 'animate-bounce' : ''}`}
+                >
+                  <Bell className="w-6 h-6" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+                {bellOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                    <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
+                    <div className="max-h-60 overflow-y-auto">
+                      {notifications.length > 0 ? notifications.slice().reverse().map(n => (
+                        <div key={n.id} className="px-4 py-2 text-sm border-b last:border-b-0">{n.title} added</div>
+                      )) : <p className="px-4 py-2 text-gray-500">No notifications</p>}
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </header>
+
+          {/* Task Board */}
+          <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+            <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tasks.length > 0 ? tasks.map(task => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleVolunteer={handleToggleVolunteer}
+                  onRemoveTask={handleRemoveTask}
+                  currentUser={currentUserData}
+                />
+              )) : <p className="text-gray-500 col-span-full text-center">No tasks yet. Council can add tasks!</p>}
             </div>
           </div>
+
         )}
       </div>
+
+
+          {/* Modal */}
+          {modalOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center">
+              <div className="bg-white rounded-2xl p-6 w-11/12 max-w-2xl relative shadow-xl">
+                <button onClick={() => setModalOpen(false)} className="absolute top-4 right-4 text-gray-600 hover:text-red-500">
+                  <X className="w-6 h-6" />
+                </button>
+                <h2 className="text-2xl font-bold mb-4">Volunteers List</h2>
+                <div className="max-h-96 overflow-y-auto">
+                  {tasks.map(task => (
+                    <div key={task.id} className="mb-4 border-b pb-2">
+                      <h3 className="font-semibold text-lg">{task.title}</h3>
+                      <p className="text-sm text-gray-500">Volunteers: {task.volunteersList.join(', ') || 'None'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
     </div>
   );
 }
