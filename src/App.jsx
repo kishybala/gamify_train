@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
+import Home from "./component/home";
 import LoginPage from "./component/login";
 import SignupPage from './component/signup';
 import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
 import Badge from './component/badges';
-
 
 // --- Mock Current User ---
 const currentUser = {
@@ -22,49 +22,31 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        {/* 🏠 Home Page (Intro + Role Selection) */}
+        <Route path="/" element={<Home />} />
+
+        {/* 🔐 Auth Pages */}
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Pass all required props to Dashboard */}
+        {/* 🧭 App Pages */}
         <Route
           path="/dashboard"
-          element={
-            <Dashboard
-              tasks={tasks}
-              setTasks={setTasks}
-              currentUser={currentUser}
-            />
-          }
+          element={<Dashboard tasks={tasks} setTasks={setTasks} currentUser={currentUser} />}
         />
-
-        {/* Leaderboard */}
         <Route
           path="/leaderboard"
           element={<Leaderboard currentUser={currentUser} />}
         />
-
-        {/* Add Task - access controlled inside AddTask */}
         <Route
-          path="/AddTask"
-          element={
-            <AddTask
-              currentUser={currentUser}
-              tasks={tasks}
-              setTasks={setTasks}
-            />
-          }
+          path="/addtask"
+          element={<AddTask currentUser={currentUser} tasks={tasks} setTasks={setTasks} />}
         />
-
-        {/* Badges */}
         <Route
-          path="/Badges"
+          path="/badges"
           element={<Badge currentUser={currentUser} />}
         />
-
-
-       
       </Routes>
     </Router>
-      
   );
 }
