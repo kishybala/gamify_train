@@ -1,120 +1,78 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase"; // adjust path if needed
-import bg from "../assets/image.png";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
-  const [role, setRole] = useState("student");
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      // Log in with Firebase
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        form.username,
-        form.password
-      );
-
-      const user = userCredential.user;
-
-      // Get role from Firestore
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        if (userData.role === role) {
-  alert(`Welcome ${userData.role}!`);
-  navigate("/dashboard"); // redirect
-}
- // redirect wherever you want
-         else {
-          alert(`This account is not registered as ${role}`);
-        }
-      } else {
-        alert("No user data found");
-      }
-    } catch (error) {
-      console.error("Login error:", error.message);
-      alert(error.message);
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (err) {
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    
-     <div
-  className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
-  style={{ backgroundImage: `url(${bg})` }}
-      >      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400 relative z-10">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-extrabold text-yellow-600">Golden Farm</h1>
-          <p className="text-gray-600">Login to your account</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden font-sans">
+      {/* 🌈 Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-950 to-black">
+        <div className="ambient-blob blob-1 bg-pink-400"></div>
+        <div className="ambient-blob blob-2 bg-blue-500"></div>
+        <div className="ambient-blob blob-3 bg-amber-300"></div>
+      </div>
 
-        {/* Role Selector */}
-        <div className="flex justify-between mb-5">
-          {["mentor", "student", "council"].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRole(r)}
-              className={`flex-1 mx-1 py-2 rounded-lg capitalize font-semibold ${
-                role === r ? "bg-yellow-500 text-white" : "bg-yellow-100 text-yellow-700"
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+      {/* ✨ Login Box */}
+      <div className="relative z-20 bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-xl max-w-sm w-full">
+        <h2 className="text-3xl font-bold text-white mb-6 text-center">Login</h2>
 
-        {/* Login Form */}
-        <form onSubmit={handleLogin} className="space-y-3">
+        <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
-            name="username"
             placeholder="Email"
-            value={form.username}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
+
           <input
             type="password"
-            name="password"
             placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
+
+          {error && <div className="text-red-400 text-sm bg-red-900/50 p-2 rounded-lg">{error}</div>}
+
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition"
+            disabled={loading}
+            className="w-full bg-pink-400 py-3 rounded-xl font-bold text-white transition hover:bg-pink-500 disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
-        </form>
 
-        {/* Signup link */}
-        <div className="mt-4 text-center">
-          <p className="text-sm">
+          <p className="text-gray-300 text-sm text-center mt-3">
             Don’t have an account?{" "}
-            <button
-              onClick={() => navigate("/signup")}
-              className="text-yellow-600 font-semibold hover:underline"
-            >
-              Register
-            </button>
+            <Link to="/signup" className="text-pink-400 underline hover:text-pink-300">
+              Sign up
+            </Link>
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );
