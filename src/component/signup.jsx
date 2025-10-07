@@ -1,3 +1,4 @@
+// 📁 src/component/signup.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -5,7 +6,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 export default function SignupPage() {
@@ -40,26 +41,28 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
 
-      // 2️⃣ Save Name + Email to Firestore
+      // 2️⃣ Firestore — Create a new document in "users" collection ✅
       await setDoc(doc(db, "users", user.uid), {
         name: form.name,
         email: form.email,
-        createdAt: new Date(),
+        role: "Student",       // 👈 Default role (ya dropdown se lo)
+        points: 0,            // 👈 Leaderboard ke liye
+        createdAt: serverTimestamp(),
       });
 
-      // 3️⃣ Save to localStorage for Dashboard name display
+      // 3️⃣ Save user data to localStorage for Dashboard use
       localStorage.setItem(
         "currentUser",
         JSON.stringify({
           id: user.uid,
           name: form.name,
           email: form.email,
-          role: "Student", // 👈 Agar aap role select karate ho to yahan usko set karo
+          role: "Student",
         })
       );
 
-      alert("Account created successfully!");
-      navigate("/dashboard"); // ✅ Dashboard pe le jao
+      alert("✅ Account created successfully!");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Signup error:", error.message);
       alert(error.message);
@@ -73,18 +76,19 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Save user to Firestore if new
+      // Firestore — create if not exists
       await setDoc(
         doc(db, "users", user.uid),
         {
           name: user.displayName || "",
           email: user.email,
-          createdAt: new Date(),
+          role: "Student",
+          points: 0,
+          createdAt: serverTimestamp(),
         },
         { merge: true }
       );
 
-      // ✅ Save to localStorage for Dashboard
       localStorage.setItem(
         "currentUser",
         JSON.stringify({
