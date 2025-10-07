@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from "react-router-dom";
 import {
   Trophy,
   Award,
@@ -10,14 +10,19 @@ import {
   Home,
   User,
   Zap,
+  Menu,
+  Trash2,
+  X
 } from 'lucide-react';
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
 
 // --- TaskCard Component ---
-const TaskCard = ({ task, onToggleVolunteer, currentUser }) => {
-  const isFull = task.volunteersList.length >= task.required;
-  const isVolunteered = task.volunteersList.includes(currentUser.id);
+const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
+  const isVolunteered = task.volunteersList.includes(currentUser.name);
+  const isFull = task.volunteersList.length >= task.required && !isVolunteered;
   const isReady = task.status === 'Ready';
-  const isButtonDisabled = isReady || (isFull && !isVolunteered);
+  const isButtonDisabled = isReady || isFull;
 
   const progressPercent = Math.min(100, (task.volunteersList.length / task.required) * 100);
 
@@ -39,7 +44,17 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full">
+    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative">
+      {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
+        <button
+          onClick={() => onRemoveTask(task.id)}
+          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+          title="Remove Task"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+      )}
+
       <div>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-xl font-extrabold text-gray-800">{task.title}</h3>
@@ -79,20 +94,70 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser }) => {
 
 // --- Dashboard Component ---
 export default function Dashboard({ tasks, setTasks, currentUser }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const storedUser = JSON.parse(localStorage.getItem("currentUser"));
+  const currentUserData = currentUser || storedUser || { role: "Guest", id: null, name: "Guest" };
+
+  const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
+
+  useEffect(() => {
+    const savedTasks = localStorage.getItem("dashboardTasks");
+    if (savedTasks) setTasks(JSON.parse(savedTasks));
+  }, [setTasks]);
+
+  useEffect(() => {
+    if (tasks && tasks.length > 0) localStorage.setItem("dashboardTasks", JSON.stringify(tasks));
+  }, [tasks]);
 
   const handleToggleVolunteer = (taskId) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task => {
-        if (task.id === taskId) {
-          const isVolunteered = task.volunteersList.includes(currentUser.id);
-          const updatedVolunteers = isVolunteered
-            ? task.volunteersList.filter(name => name !== currentUser.id)
-            : [...task.volunteersList, currentUser.id];
-          return { ...task, volunteersList: updatedVolunteers };
-        }
-        return task;
-      })
-    );
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId) {
+        const isVolunteered = task.volunteersList.includes(currentUserData.name);
+        const updatedVolunteers = isVolunteered
+          ? task.volunteersList.filter(name => name !== currentUserData.name)
+          : [...task.volunteersList, currentUserData.name];
+        return { ...task, volunteersList: updatedVolunteers };
+      }
+      return task;
+    });
+    setTasks(updatedTasks);
+    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+  };
+
+  const handleRemoveTask = (taskId) => {
+    if (currentUserData.role === "Council" || currentUserData.role === "Mentor") {
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      setTasks(updatedTasks);
+      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+    } else {
+      alert("You are not allowed to remove tasks.");
+    }
+  };
+
+  const handleProfileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfilePic(reader.result);
+        localStorage.setItem("profilePic", reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem("currentUser");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Failed to logout.");
+    }
   };
 
   return (
@@ -100,76 +165,92 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
       <div className="absolute inset-0 z-0 opacity-10" style={{ background: 'linear-gradient(135deg, #e0f2f1 0%, #fffde7 100%)' }}></div>
       <div className="relative z-10 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
-        {/* Header */}
         <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center">
-          <div>
-            <span className="text-2xl font-extrabold text-green-600 mr-4">Campus Heroes</span>
-            <span className="text-xl font-bold text-gray-800">Welcome, <span className="text-green-600">{currentUser.name}</span>!</span>
-            <span className="text-sm text-gray-500 ml-3">({currentUser.role})</span>
+          <div className="flex items-center space-x-4">
+            <div className="relative w-30 h-30">
+              <img
+                src={profilePic || "https://via.placeholder.com/90"}
+                alt="Profile"
+                className="w-30 h-30 rounded-full object-cover border-2 border-gray-300"
+              />
+              <label htmlFor="profileUpload" className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs">✏️</label>
+              <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden"/>
+            </div>
+            <div>
+              <span className="text-2xl font-extrabold text-green-600 mr-2">Campus Heroine</span>
+              <div className="text-xl font-bold text-gray-800">Welcome, <span className="text-green-600">{currentUserData.name}</span>!</div>
+              <span className="text-sm text-gray-500">({currentUserData.role})</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-4">
             <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md">
-              <Zap className="w-5 h-5 mr-2" />
-              <span>Points: 0</span>
+              <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
             </div>
             <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md">
-              <Award className="w-5 h-5 mr-2" />
-              <span>Badges: 0</span>
+              <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
             </div>
-            <button className="flex items-center text-gray-600 hover:text-red-500 transition duration-150 p-2 rounded-full hover:bg-gray-100">
-              <LogOut className="w-5 h-5 mr-1" />
-              <span className="hidden sm:inline">Logout</span>
+
+            <button onClick={() => setModalOpen(true)} className="bg-blue-500 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 transition">
+              View Volunteers
             </button>
+
+            <div className="relative">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 hover:text-green-500 transition duration-150 p-2 rounded-full hover:bg-gray-100">
+                <Menu className="w-6 h-6"/>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                  <Link to="/dashboard" className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 rounded-t-xl font-semibold" onClick={() => setMenuOpen(false)}><Home className="w-5 h-5 mr-2"/> Dashboard</Link>
+                  <Link to="/badges" className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold" onClick={() => setMenuOpen(false)}><Award className="w-5 h-5 mr-2"/> Badges</Link>
+                  <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 font-semibold" onClick={() => setMenuOpen(false)}><Trophy className="w-5 h-5 mr-2"/> Leaderboard</Link>
+                  {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
+                    <Link to="/AddTask" className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold rounded-b-xl" onClick={() => setMenuOpen(false)}><User className="w-5 h-5 mr-2"/> Add Task</Link>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button onClick={handleLogout} className="flex items-center text-gray-600 hover:text-red-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"><LogOut className="w-5 h-5 mr-1"/> <span className="hidden sm:inline">Logout</span></button>
           </div>
         </header>
 
-        {/* Tabs with Router Links */}
-        <nav className="flex space-x-1 bg-white p-2 rounded-xl shadow-lg mb-8 overflow-x-auto">
-          <Link
-            to="/dashboard"
-            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
-          >
-            <Home className="w-5 h-5 mr-2" /> Dashboard
-          </Link>
-
-          <Link
-            to="/badges"
-            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-          >
-            <Award className="w-5 h-5 mr-2" /> Badges
-          </Link>
-
-          <Link
-            to="/leaderboard"
-            className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-          >
-            <Trophy className="w-5 h-5 mr-2" /> Leaderboard
-          </Link>
-
-          {currentUser.role === "Council" && (
-            <Link
-              to="/AddTask"
-              className="flex-shrink-0 flex items-center px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg"
-            >
-              <User className="w-5 h-5 mr-2" /> Add Task
-            </Link>
-          )}
-        </nav>
-
-        {/* Content (Dashboard Task Board) */}
+        {/* Task Board */}
         <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
           <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.length > 0 ? (
-              tasks.map(task => (
-                <TaskCard key={task.id} task={task} onToggleVolunteer={handleToggleVolunteer} currentUser={currentUser} />
-              ))
-            ) : (
-              <p className="text-gray-500 col-span-full text-center">No tasks yet. Council can add tasks!</p>
-            )}
+            {tasks.length > 0 ? tasks.map(task => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onToggleVolunteer={handleToggleVolunteer}
+                onRemoveTask={handleRemoveTask}
+                currentUser={currentUserData}
+              />
+            )) : <p className="text-gray-500 col-span-full text-center">No tasks yet. Council can add tasks!</p>}
           </div>
         </div>
+
+        {/* Modal */}
+        {modalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center">
+            <div className="bg-white rounded-2xl p-6 w-11/12 max-w-2xl relative shadow-xl">
+              <button onClick={() => setModalOpen(false)} className="absolute top-4 right-4 text-gray-600 hover:text-red-500">
+                <X className="w-6 h-6"/>
+              </button>
+              <h2 className="text-2xl font-bold mb-4">Volunteers List</h2>
+              <div className="max-h-96 overflow-y-auto">
+                {tasks.map(task => (
+                  <div key={task.id} className="mb-4 border-b pb-2">
+                    <h3 className="font-semibold text-lg">{task.title}</h3>
+                    <p className="text-sm text-gray-500">Volunteers: {task.volunteersList.join(', ') || 'None'}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

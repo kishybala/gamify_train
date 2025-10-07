@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase"; // adjust path if needed
+import { auth, db } from "../firebase"; 
 import bg from "../assets/image.png";
 
 export default function LoginPage() {
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      // Log in with Firebase
       const userCredential = await signInWithEmailAndPassword(
         auth,
         form.username,
@@ -25,19 +24,23 @@ export default function LoginPage() {
       );
 
       const user = userCredential.user;
-
-      // Get role from Firestore
       const docRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
         const userData = docSnap.data();
         if (userData.role === role) {
-  alert(`Welcome ${userData.role}!`);
-  navigate("/dashboard"); // redirect
-}
- // redirect wherever you want
-         else {
+          // Save currentUser to localStorage
+          localStorage.setItem("currentUser", JSON.stringify({
+            id: user.uid,
+            name: userData.name || "User",
+            role: userData.role,
+            profilePic: userData.profilePic || null
+          }));
+
+          alert(`Welcome ${userData.role}!`);
+          navigate("/dashboard"); 
+        } else {
           alert(`This account is not registered as ${role}`);
         }
       } else {
@@ -50,17 +53,16 @@ export default function LoginPage() {
   };
 
   return (
-    
-     <div
-  className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
-  style={{ backgroundImage: `url(${bg})` }}
-      >      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400 relative z-10">
+    <div
+      className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+      style={{ backgroundImage: `url(${bg})` }}
+    >
+      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400 relative z-10">
         <div className="text-center mb-6">
           <h1 className="text-4xl font-extrabold text-yellow-600">Golden Farm</h1>
           <p className="text-gray-600">Login to your account</p>
         </div>
 
-        {/* Role Selector */}
         <div className="flex justify-between mb-5">
           {["mentor", "student", "council"].map((r) => (
             <button
@@ -75,7 +77,6 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-3">
           <input
             type="email"
@@ -103,7 +104,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Signup link */}
         <div className="mt-4 text-center">
           <p className="text-sm">
             Don’t have an account?{" "}
