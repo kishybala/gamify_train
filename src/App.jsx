@@ -6,6 +6,8 @@ import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
 import  Badge  from './component/badges';
+import Pointer from "./component/point";
+
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
          <Route path="/Leaderboard" element={<Leaderboard />} />
          <Route path="/AddTask" element={<AddTask />} />
          <Route path="/Badges" element={<Badge />} />
+         <Route path="/Point" element={<Pointer />} />
 
       </Routes>
     </Router>
