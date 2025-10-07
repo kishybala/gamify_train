@@ -38,7 +38,6 @@ export default function SignupPage() {
         form.email,
         form.password
       );
-
       const user = userCredential.user;
 
       // 2️⃣ Save Name + Email to Firestore
@@ -48,8 +47,19 @@ export default function SignupPage() {
         createdAt: new Date(),
       });
 
+      // 3️⃣ Save to localStorage for Dashboard name display
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          id: user.uid,
+          name: form.name,
+          email: form.email,
+          role: "Student", // 👈 Agar aap role select karate ho to yahan usko set karo
+        })
+      );
+
       alert("Account created successfully!");
-      navigate("/"); // back to login page
+      navigate("/dashboard"); // ✅ Dashboard pe le jao
     } catch (error) {
       console.error("Signup error:", error.message);
       alert(error.message);
@@ -74,6 +84,17 @@ export default function SignupPage() {
         { merge: true }
       );
 
+      // ✅ Save to localStorage for Dashboard
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          id: user.uid,
+          name: user.displayName || "",
+          email: user.email,
+          role: "Student",
+        })
+      );
+
       navigate("/dashboard");
     } catch (error) {
       console.error("Google sign-in error:", error.message);
@@ -84,7 +105,9 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-300 to-yellow-200">
       <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-        <h1 className="text-3xl font-bold text-yellow-600 text-center mb-4">Sign Up</h1>
+        <h1 className="text-3xl font-bold text-yellow-600 text-center mb-4">
+          Sign Up
+        </h1>
 
         {/* 📝 Signup Form */}
         <form onSubmit={handleSignup} className="space-y-3">
