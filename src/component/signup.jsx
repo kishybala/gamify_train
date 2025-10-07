@@ -6,10 +6,16 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../firebase"; // ✅ adjust path if needed
+import { auth, db } from "../firebase";
 
 export default function SignupPage() {
-  const [form, setForm] = useState({ email: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -26,6 +32,7 @@ export default function SignupPage() {
     }
 
     try {
+      // 1️⃣ Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         form.email,
@@ -34,14 +41,15 @@ export default function SignupPage() {
 
       const user = userCredential.user;
 
-      // Save basic info in Firestore
+      // 2️⃣ Save Name + Email to Firestore
       await setDoc(doc(db, "users", user.uid), {
+        name: form.name,
         email: form.email,
         createdAt: new Date(),
       });
 
       alert("Account created successfully!");
-      navigate("/dashboard");
+      navigate("/"); // back to login page
     } catch (error) {
       console.error("Signup error:", error.message);
       alert(error.message);
@@ -56,10 +64,15 @@ export default function SignupPage() {
       const user = result.user;
 
       // Save user to Firestore if new
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        createdAt: new Date(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: user.displayName || "",
+          email: user.email,
+          createdAt: new Date(),
+        },
+        { merge: true }
+      );
 
       navigate("/dashboard");
     } catch (error) {
@@ -75,6 +88,16 @@ export default function SignupPage() {
 
         {/* 📝 Signup Form */}
         <form onSubmit={handleSignup} className="space-y-3">
+          <input
+            type="text"
+            name="name"
+            placeholder="Full Name"
+            value={form.name}
+            onChange={handleChange}
+            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
+            required
+          />
+
           <input
             type="email"
             name="email"
