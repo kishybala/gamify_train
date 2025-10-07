@@ -202,9 +202,13 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="p-12 text-center bg-white rounded-2xl shadow-xl border border-gray-100">
-            <h3 className="text-2xl font-bold text-gray-700">Content for {activeTab} will go here!</h3>
-          </div>
+          <div>
+  {activeTab === 'Dashboard' && <DashboardContent tasks={tasks} onToggleVolunteer={handleToggleVolunteer} currentUserId={currentUserId} />}
+  {activeTab === 'Badges' && <BadgesPage tasksCompleted={INITIAL_TASKS_COMPLETED} />}
+  {activeTab === 'Leaderboard' && <LeaderboardPage />}
+  {activeTab === 'Profile' && <ProfilePage />}
+</div>
+
         )}
       </div>
     </div>
