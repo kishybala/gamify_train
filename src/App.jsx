@@ -7,6 +7,7 @@ import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
 import Badge from './component/badges';
+import PointsPage from './component/Point'; // <- import PointsPage
 
 // --- Mock Current User ---
 const currentUser = {
@@ -59,7 +60,14 @@ export default function App() {
           path="/Badges"
           element={<Badge currentUser={currentUser} />}
         />
+
+
+        <Route
+          path="/points"
+          element={<PointsPage currentUser={currentUser} />}
+        />
       </Routes>
     </Router>
+      
   );
 }
