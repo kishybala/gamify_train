@@ -89,13 +89,12 @@ const useStudents = (db, isAuthReady, userId) => {
         const studentQuery = query(studentsCollectionRef);
 
         const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
-            const studentList = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                transactions: doc.data().transactions || [],
-            }));
+            // Filter: Only include the currently logged-in user
+            const studentList = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }))
+                .filter(student => student.id === userId);  // <-- Only show the current user
 
-            // Sort by points descending
+            // Sort by points descending (optional, single user is fine)
             studentList.sort((a, b) => b.totalPoints - a.totalPoints);
 
             // Add rank
@@ -114,7 +113,7 @@ const useStudents = (db, isAuthReady, userId) => {
         return () => unsubscribe();
     }, [db, isAuthReady, userId]);
 
-    return { students, setStudents, isLoading }; // <-- expose setStudents for instant updates
+    return { students, setStudents, isLoading };
 };
 
 // Custom Notification Toast Component
@@ -455,49 +454,20 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
 // --- MAIN APP COMPONENT ---
 const App = () => {
     const { db, auth, userId, isAuthReady } = useFirebase();
-const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId);
-    
+    const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId);
+
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [animationStudent, setAnimationStudent] = useState(null);
     const [effectKey, setEffectKey] = useState(0);
 
-    const isAdmin = true;
     const [notification, setNotification] = useState(null);
 
-    // Simulate initial student setup if the list is empty (for first run/demo)
-    useEffect(() => {
-        if (!db || !isAuthReady || !userId || isLoading || students.length > 0) return;
-
-        const setupInitialStudents = async () => {
-            const initialUsers = [
-                { name: "Aarav Sharma", id: 'aarav-001' },
-                { name: "Zoe Miller", id: 'zoe-002' },
-                { name: "Chris Evans", id: 'chris-003' },
-                { name: "Priya Singh", id: 'priya-004' },
-                { name: "John Doe", id: 'john-005' },
-                { name: "Emily Chen", id: 'emily-006' },
-            ];
-
-            for (const user of initialUsers) {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', user.id);
-                try {
-                    await setDoc(docRef, {
-                        name: user.name,
-                        totalPoints: Math.floor(Math.random() * 80) + 10, // Start with more dynamic points
-                        transactions: [],
-                    }, { merge: true });
-                } catch (e) {
-                    console.error("Error setting initial student:", e);
-                }
-            }
-        };
-
-        setupInitialStudents();
-    }, [db, isAuthReady, isLoading, students.length, userId]);
+    const isAdmin = true;
 
 
-    // UPDATED: Handle click to start the sequenced animation
+
+    // Handle click to start the sequenced animation
     const handleStudentClick = useCallback((student) => {
         if (isAnimating) return;
 
@@ -506,31 +476,22 @@ const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId
             return;
         }
 
-        // --- Start Animation Sequence (Water Drop Effect) ---
         setIsAnimating(true);
         setAnimationStudent(student);
-        setEffectKey(prev => prev + 1); // Trigger water drop component key change
+        setEffectKey(prev => prev + 1);
 
-        // Wait 500ms for the drop effect to complete its main visual burst
         const dropTimeout = setTimeout(() => {
-
-            // 2. Open Detail Panel 
             setSelectedStudent(student);
-
-            // 3. End Animation Lock (after detail panel transition, ~700ms)
             const openTimeout = setTimeout(() => {
                 setIsAnimating(false);
                 setAnimationStudent(null);
             }, 700);
-
             return () => clearTimeout(openTimeout);
         }, 500);
 
         return () => clearTimeout(dropTimeout);
-
     }, [isAnimating, selectedStudent]);
 
-    // Memoized component for the detail panel to control its animation/visibility
     const DetailPanel = useMemo(() => {
         if (!selectedStudent) return null;
         return (
@@ -540,25 +501,22 @@ const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId
                 db={db}
                 adminId={userId}
                 setNotification={setNotification}
-                students={students}        // pass state
-                setStudents={setStudents}  // pass setter
+                students={students}
+                setStudents={setStudents}
             />
-
-
         );
-    }, [selectedStudent, db, userId, setNotification]);
+    }, [selectedStudent, db, userId, setNotification, students, setStudents]);
 
     if (!isAuthReady || isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-                {/* Translated loading text */}
-                <div className="text-2xl font-black text-indigo-600 animate-bounce">Student Points Tracker Loading...</div>
+                <div className="text-2xl font-black text-indigo-600 animate-bounce">
+                    Student Points Tracker Loading...
+                </div>
             </div>
         );
     }
 
-    // Custom CSS for the subtle float animation using keyframes
-    // Injecting keyframes via style tag (best practice for single file React)
     const customStyles = `
         @keyframes float {
             0%, 100% { transform: translateY(0); }
@@ -567,24 +525,17 @@ const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId
     `;
 
     return (
-        <div className="min-h-screen font-['Inter'] relative overflow-hidden p-4 sm:p-8 
-            bg-gradient-to-br from-indigo-50 to-purple-50">
-
-            {/* Custom Keyframes for float animation */}
+        <div className="min-h-screen font-['Inter'] relative overflow-hidden p-4 sm:p-8 bg-gradient-to-br from-indigo-50 to-purple-50">
             <style>{customStyles}</style>
-
-            {/* Subtle background visual elements for a creative look */}
             <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-200 opacity-30 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-200 opacity-20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
 
             <NotificationToast notification={notification} setNotification={setNotification} />
 
-            {/* Water Drop Effect is now multi-layered and more dramatic */}
             {animationStudent && <WaterDropEffect effectKey={effectKey} />}
 
             <header className="mb-10 border-b-4 border-indigo-400/50 pb-4 flex justify-between items-center flex-wrap relative z-20">
                 <h1 className="text-5xl font-extrabold text-gray-900 leading-tight">
-                    {/* Translated title */}
                     <span className="text-indigo-600 drop-shadow-md">Student</span> <span className="text-purple-600">Points Tracker</span>
                 </h1>
                 <div className="flex items-center space-x-3 mt-4 sm:mt-0 bg-white/80 backdrop-blur-sm p-3 rounded-2xl shadow-xl border border-indigo-200">
@@ -593,41 +544,27 @@ const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                         </svg>
                     </div>
-                    {/* Translated label */}
-                    <span className="font-extrabold text-gray-800 text-base">
-                        Admin Panel
-                    </span>
+                    <span className="font-extrabold text-gray-800 text-base">Admin Panel</span>
                 </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
-                {/* Left Column: Student List (Opacity and pointer-events-none when modal is open) */}
-                <div className={`lg:col-span-2 space-y-5 transition-opacity duration-300 
-                    ${selectedStudent ? 'opacity-30 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
-                >
-                    {/* Translated list header */}
+                <div className={`lg:col-span-2 space-y-5 transition-opacity duration-300 ${selectedStudent ? 'opacity-30 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
                     <h2 className="text-3xl font-bold text-gray-800 mb-4 tracking-wider">All Students ({students.length})</h2>
-                    {students.map((student) => (
+                    {students.map(student => (
                         <StudentCard
                             key={student.id}
                             student={student}
                             onClick={handleStudentClick}
                             isSelected={selectedStudent && selectedStudent.id === student.id}
-                            isAnimating={isAnimating} // Pass animation state to disable clicks
+                            isAnimating={isAnimating}
                         />
                     ))}
-                    {/* Translated empty list message */}
                     {students.length === 0 && <p className="text-center text-gray-600 py-10 bg-white/60 rounded-xl shadow-inner">No students registered yet.</p>}
                 </div>
 
-                {/* Right Column/Overlay: Detail Panel (Full-screen top-aligned modal with high z-index) */}
-                <div className={`fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300 flex justify-center pt-28 // HEADER के नीचे दिखने के लिए pt-28 किया गया
-                    ${selectedStudent ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                >
-                    {/* Detail Panel container - max-w-md width and centered spinning animation */}
-                    <div className={`w-11/12 max-w-md transition-all duration-700 ease-out // छोटे साइज़ के लिए max-w-lg से max-w-md किया गया
-                        ${selectedStudent ? 'scale-100 opacity-100 rotate-0' : 'scale-75 opacity-0 rotate-180'}`}
-                    >
+                <div className={`fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300 flex justify-center pt-28 ${selectedStudent ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                    <div className={`w-11/12 max-w-md transition-all duration-700 ease-out ${selectedStudent ? 'scale-100 opacity-100 rotate-0' : 'scale-75 opacity-0 rotate-180'}`}>
                         {DetailPanel}
                     </div>
                 </div>
