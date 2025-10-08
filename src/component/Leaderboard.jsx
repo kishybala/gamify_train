@@ -246,78 +246,103 @@ export default function Leaderboard() {
 
         {/* Top 3 Podium Display */}
         {topThreeUsers.length >= 1 && (
-          <div className="max-w-4xl mx-auto mb-8 animate-fade-in">
-            <h2 className="text-2xl font-bold text-center mb-6 text-gray-700">🌟 Top Performers ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)}) 🌟</h2>
-            <div className="flex justify-center items-end space-x-4 mb-8">
+          <div className="max-w-5xl mx-auto mb-8">
+            <h2 className="text-3xl font-bold text-center mb-8 text-gray-800 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              � Top Performers ({timePeriod.charAt(0).toUpperCase() + timePeriod.slice(1)}) �
+            </h2>
+            <div className="flex justify-center items-center space-x-8 mb-8">
+              
               {/* Second Place */}
               {topThreeUsers[1] && (
-                <div className="text-center transform transition-all duration-500 hover:scale-105">
-                  <div className="relative">
-                    <div className="bg-gradient-to-b from-gray-300 to-gray-500 w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                      <span className="text-white font-bold text-2xl">🥈</span>
+                <div className="flex flex-col items-center transform transition-all duration-700 hover:scale-110 group">
+                  {/* Medal/Badge */}
+                  <div className="relative mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-gray-300 via-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-3xl transition-all duration-500 animate-pulse">
+                      <span className="text-3xl">🥈</span>
                     </div>
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-pulse"></div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full animate-ping"></div>
                   </div>
-                  <div className="bg-white rounded-full p-4 shadow-xl transform hover:rotate-1 transition-all duration-500 border-4 border-gray-400 hover:border-gray-500">
-                    <img 
-                      src={topThreeUsers[1].profilePic || "https://via.placeholder.com/60"} 
-                      alt="Profile" 
-                      className="w-16 h-16 rounded-full object-cover mx-auto mb-2 transition-transform duration-300 hover:scale-110"
-                    />
-                    <div className="text-sm font-bold text-gray-800">{topThreeUsers[1].name?.split(' ')[0] || topThreeUsers[1].email?.split('@')[0]}</div>
-                    <div className="text-xs text-blue-600 font-semibold">{topThreeUsers[1].role || 'Student'}</div>
-                    <div className="text-xs text-gray-500">{topThreeUsers[1].department || 'General'}</div>
-                    <div className="text-gray-600 font-bold mt-1 text-sm">{topThreeUsers[1].points} pts</div>
-                    <div className="text-xs text-gray-400 font-bold">Position: #2</div>
+                  
+                  {/* Profile Card */}
+                  <div className="bg-white rounded-2xl p-6 shadow-2xl group-hover:shadow-3xl transition-all duration-500 border-2 border-gray-300 group-hover:border-gray-400 max-w-xs">
+                    <div className="flex flex-col items-center">
+                      <img 
+                        src={topThreeUsers[1].profilePic || "https://via.placeholder.com/80"} 
+                        alt="Profile" 
+                        className="w-20 h-20 rounded-full object-cover border-4 border-gray-300 shadow-lg mb-3 group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <h3 className="text-lg font-bold text-gray-800 mb-1">{topThreeUsers[1].name?.split(' ')[0] || topThreeUsers[1].email?.split('@')[0]}</h3>
+                      <p className="text-sm text-blue-600 font-semibold mb-1">{topThreeUsers[1].role || 'Student'}</p>
+                      <p className="text-xs text-gray-500 mb-3">{topThreeUsers[1].department || 'General'}</p>
+                      <div className="bg-gray-100 rounded-full px-4 py-2">
+                        <span className="text-lg font-bold text-gray-700">{topThreeUsers[1].points} pts</span>
+                      </div>
+                      <div className="mt-2 bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">2nd Place</div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* First Place */}
-              <div className="text-center transform transition-all duration-500 hover:scale-110">
-                <div className="relative">
-                  <div className="bg-gradient-to-b from-yellow-300 via-yellow-400 to-yellow-600 w-32 h-32 rounded-full flex flex-col items-center justify-center mb-4 shadow-2xl hover:shadow-3xl transition-shadow duration-300">
-                    <div className="text-3xl mb-1 animate-pulse">👑</div>
-                    <span className="text-white font-bold text-lg">1st</span>
+              <div className="flex flex-col items-center transform transition-all duration-700 hover:scale-115 group z-10">
+                {/* Crown and Medal */}
+                <div className="relative mb-4">
+                  <div className="w-28 h-28 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 rounded-full flex flex-col items-center justify-center shadow-3xl group-hover:shadow-4xl transition-all duration-500">
+                    <div className="text-2xl animate-bounce">👑</div>
+                    <span className="text-white font-bold text-sm">WINNER</span>
                   </div>
-                  <div className="absolute -top-4 -left-2 w-8 h-8 bg-yellow-300 rounded-full animate-pulse"></div>
-                  <div className="absolute -top-4 -right-2 w-6 h-6 bg-yellow-500 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-3 -left-3 w-8 h-8 bg-yellow-300 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-3 -right-3 w-6 h-6 bg-yellow-500 rounded-full animate-pulse delay-75"></div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-yellow-400 animate-pulse text-xl">✨</div>
                 </div>
-                <div className="bg-white rounded-full p-6 shadow-2xl transform hover:-rotate-1 transition-all duration-500 border-4 border-yellow-400 hover:border-yellow-500 relative">
-                  <div className="absolute -top-1 -right-1 text-yellow-500 animate-pulse">✨</div>
-                  <img 
-                    src={topThreeUsers[0].profilePic || "https://via.placeholder.com/80"} 
-                    alt="Profile" 
-                    className="w-20 h-20 rounded-full object-cover mx-auto mb-3 border-2 border-yellow-400 transition-transform duration-300 hover:scale-105"
-                  />
-                  <div className="text-lg font-bold text-gray-800">{topThreeUsers[0].name?.split(' ')[0] || topThreeUsers[0].email?.split('@')[0]}</div>
-                  <div className="text-sm text-blue-600 font-semibold">{topThreeUsers[0].role || 'Student'}</div>
-                  <div className="text-xs text-gray-500">{topThreeUsers[0].department || 'General'}</div>
-                  <div className="text-yellow-600 font-bold mt-2 text-lg">{topThreeUsers[0].points} pts</div>
-                  <div className="text-sm text-yellow-600 font-bold">Position: #1</div>
+                
+                {/* Profile Card */}
+                <div className="bg-white rounded-2xl p-8 shadow-3xl group-hover:shadow-4xl transition-all duration-500 border-4 border-yellow-400 group-hover:border-yellow-500 max-w-xs relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-yellow-600"></div>
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={topThreeUsers[0].profilePic || "https://via.placeholder.com/100"} 
+                      alt="Profile" 
+                      className="w-24 h-24 rounded-full object-cover border-4 border-yellow-400 shadow-xl mb-4 group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <h3 className="text-xl font-bold text-gray-800 mb-1">{topThreeUsers[0].name?.split(' ')[0] || topThreeUsers[0].email?.split('@')[0]}</h3>
+                    <p className="text-sm text-blue-600 font-semibold mb-1">{topThreeUsers[0].role || 'Student'}</p>
+                    <p className="text-xs text-gray-500 mb-4">{topThreeUsers[0].department || 'General'}</p>
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full px-6 py-3 shadow-lg">
+                      <span className="text-xl font-bold text-white">{topThreeUsers[0].points} pts</span>
+                    </div>
+                    <div className="mt-3 bg-yellow-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-md">🏆 1st Place</div>
+                  </div>
                 </div>
               </div>
 
               {/* Third Place */}
               {topThreeUsers[2] && (
-                <div className="text-center transform transition-all duration-500 hover:scale-105">
-                  <div className="relative">
-                    <div className="bg-gradient-to-b from-amber-500 to-amber-700 w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                      <span className="text-white font-bold text-2xl">🥉</span>
+                <div className="flex flex-col items-center transform transition-all duration-700 hover:scale-110 group">
+                  {/* Medal/Badge */}
+                  <div className="relative mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 via-amber-500 to-amber-700 rounded-full flex items-center justify-center shadow-2xl group-hover:shadow-3xl transition-all duration-500 animate-pulse">
+                      <span className="text-3xl">🥉</span>
                     </div>
-                    <div className="absolute -top-2 -left-2 w-5 h-5 bg-amber-400 rounded-full animate-pulse"></div>
+                    <div className="absolute -top-2 -left-2 w-5 h-5 bg-amber-400 rounded-full animate-ping"></div>
                   </div>
-                  <div className="bg-white rounded-full p-4 shadow-xl transform hover:-rotate-1 transition-all duration-500 border-4 border-amber-500 hover:border-amber-600">
-                    <img 
-                      src={topThreeUsers[2].profilePic || "https://via.placeholder.com/60"} 
-                      alt="Profile" 
-                      className="w-16 h-16 rounded-full object-cover mx-auto mb-2 transition-transform duration-300 hover:scale-110"
-                    />
-                    <div className="text-sm font-bold text-gray-800">{topThreeUsers[2].name?.split(' ')[0] || topThreeUsers[2].email?.split('@')[0]}</div>
-                    <div className="text-xs text-blue-600 font-semibold">{topThreeUsers[2].role || 'Student'}</div>
-                    <div className="text-xs text-gray-500">{topThreeUsers[2].department || 'General'}</div>
-                    <div className="text-amber-600 font-bold mt-1 text-sm">{topThreeUsers[2].points} pts</div>
-                    <div className="text-xs text-amber-600 font-bold">Position: #3</div>
+                  
+                  {/* Profile Card */}
+                  <div className="bg-white rounded-2xl p-6 shadow-2xl group-hover:shadow-3xl transition-all duration-500 border-2 border-amber-400 group-hover:border-amber-500 max-w-xs">
+                    <div className="flex flex-col items-center">
+                      <img 
+                        src={topThreeUsers[2].profilePic || "https://via.placeholder.com/80"} 
+                        alt="Profile" 
+                        className="w-20 h-20 rounded-full object-cover border-4 border-amber-400 shadow-lg mb-3 group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <h3 className="text-lg font-bold text-gray-800 mb-1">{topThreeUsers[2].name?.split(' ')[0] || topThreeUsers[2].email?.split('@')[0]}</h3>
+                      <p className="text-sm text-blue-600 font-semibold mb-1">{topThreeUsers[2].role || 'Student'}</p>
+                      <p className="text-xs text-gray-500 mb-3">{topThreeUsers[2].department || 'General'}</p>
+                      <div className="bg-amber-100 rounded-full px-4 py-2">
+                        <span className="text-lg font-bold text-amber-700">{topThreeUsers[2].points} pts</span>
+                      </div>
+                      <div className="mt-2 bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold">3rd Place</div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -391,7 +416,7 @@ export default function Leaderboard() {
                         {index < 3 ? (index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉') : `${index + 1}.`}
                       </span>
                       <img 
-                        src={user.profilePic || "https://via.placeholder.com/50"} 
+                        src={user.profilePic || "https://via.placeholgit der.com/50"} 
                         alt="Profile" 
                         className="w-12 h-12 rounded-full object-cover border-2 border-gray-300"
                       />
