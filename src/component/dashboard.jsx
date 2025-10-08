@@ -117,9 +117,23 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
 
         if (docSnap.exists()) {
           const userData = docSnap.data();
+          // Helper function to extract first name from email
+          const extractFirstName = (displayName, email) => {
+            if (displayName && displayName.trim()) {
+              return displayName.split(' ')[0];
+            }
+            if (email) {
+              const emailPart = email.split('@')[0];
+              const cleanName = emailPart.replace(/[0-9._-]/g, '');
+              return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+            }
+            return "User";
+          };
+          
+          const firstName = userData.name || extractFirstName(user.displayName, user.email);
           const updatedUser = {
             id: user.uid,
-            name: userData.name || user.email,
+            name: firstName,
             email: user.email,
             role: userData.role || "Student",
           };
@@ -285,7 +299,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
                     <Link to="/badges" className="flex items-center px-4 py-3 hover:bg-purple-50 font-semibold"><Award className="w-5 h-5 mr-2" /> Badges</Link>
                     <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 font-semibold"><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
                     {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
-                      <Link to="/AddTask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold"><User className="w-5 h-5 mr-2" /> Add Task</Link>
+                      <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold"><User className="w-5 h-5 mr-2" /> Add Task</Link>
                     )}
                     <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
                   </div>

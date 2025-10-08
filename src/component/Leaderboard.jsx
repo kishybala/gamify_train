@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function Leaderboard() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+
+  // Get current user to determine which dashboard to return to
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -21,6 +28,15 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(dashboardPath)}
+        className="mb-6 flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Dashboard
+      </button>
+      
       <h1 className="text-3xl font-bold text-center mb-6">🏆 Leaderboard</h1>
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-xl p-6">
         {users.length > 0 ? (
