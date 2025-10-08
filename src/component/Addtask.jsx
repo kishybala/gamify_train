@@ -8,6 +8,9 @@ import { db } from "../firebase"; // Firebase config file
 export default function AddTask({ currentUser, tasks, setTasks }) {
   const navigate = useNavigate();
 
+  // Get current user to determine which dashboard to return to
+  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
+
   // Access control
   if (!(currentUser.role === "Council" || currentUser.role === "Mentor")) {
     return (
@@ -168,7 +171,7 @@ const handleSubmit = async () => {
               Submit Task
             </button>
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate(dashboardPath)}
               className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-2xl"
             >
               ← Back to Dashboard

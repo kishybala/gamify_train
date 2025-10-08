@@ -1,5 +1,6 @@
 import React from 'react';
-import { Award, Lock } from 'lucide-react';
+import { Award, Lock, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Configuration
 const USER_NAME = 'aasiya';
@@ -31,8 +32,13 @@ const calculateEarnedBadges = (tasks) => {
 };
 
 export default function BadgesPage() {
+  const navigate = useNavigate();
   const [tasksCompleted] = React.useState(INITIAL_TASKS_COMPLETED);
   const earnedBadges = calculateEarnedBadges(tasksCompleted);
+
+  // Get current user to determine which dashboard to return to
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
 
   const sortedBadges = [...ALL_BADGES].sort((a, b) => {
     const aEarned = earnedBadges.some((eb) => eb.id === a.id);
@@ -50,10 +56,19 @@ export default function BadgesPage() {
         body { font-family: 'Inter', sans-serif; }`}
       </style>
 
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(dashboardPath)}
+        className="mb-6 flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Dashboard
+      </button>
+
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold text-gray-800 drop-shadow-lg flex items-center justify-center">
           <Award size={36} className="text-green-500 mr-3" />
-          {USER_NAME}'s Badge Collection
+          {currentUser.name || USER_NAME}'s Badge Collection
           <Award size={36} className="text-green-500 ml-3" />
         </h1>
         <p className="text-lg text-gray-600 mt-2">

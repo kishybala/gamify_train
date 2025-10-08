@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
+
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "../firebase";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+
 import { collection, getDocs, orderBy, query, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
+
 export default function Leaderboard() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -22,6 +30,10 @@ export default function Leaderboard() {
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   const navigate = useNavigate();
+
+  // Get current user to determine which dashboard to return to
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -145,6 +157,26 @@ export default function Leaderboard() {
   const topThreeUsers = filteredUsers.slice(0, 3);
 
   return (
+
+    <div className="min-h-screen p-6 bg-gray-50">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(dashboardPath)}
+        className="mb-6 flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Dashboard
+      </button>
+      
+      <h1 className="text-3xl font-bold text-center mb-6">🏆 Leaderboard</h1>
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-xl p-6">
+        {users.length > 0 ? (
+          <ul>
+            {users.map((user, index) => (
+              <li
+                key={user.id}
+                className="flex justify-between items-center py-2 border-b last:border-b-0"
+
     <div className="min-h-screen font-inter bg-gradient-to-br from-green-50 to-blue-50">
       {/* Navbar/Header */}
       <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center animate-fadeIn">
@@ -237,6 +269,7 @@ export default function Leaderboard() {
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
+>
               >
                 {period === 'today' ? 'Today' : period === 'weekly' ? 'Weekly' : 'Monthly'}
               </button>

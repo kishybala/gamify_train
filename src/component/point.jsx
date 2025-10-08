@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
 import { getFirestore, collection, query, onSnapshot, doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 
 // --- FIREBASE AND UTILITY SETUP ---
@@ -453,7 +454,12 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
+    const navigate = useNavigate();
     const { db, auth, userId, isAuthReady } = useFirebase();
+
+    // Get current user to determine which dashboard to return to
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
     const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId);
 
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -529,6 +535,14 @@ const App = () => {
             <style>{customStyles}</style>
             <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-200 opacity-30 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-200 opacity-20 rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+
+            {/* Back Button */}
+            <button
+                onClick={() => navigate(dashboardPath)}
+                className="mb-6 flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors relative z-30"
+            >
+                ← Back to Dashboard
+            </button>
 
             <NotificationToast notification={notification} setNotification={setNotification} />
 
