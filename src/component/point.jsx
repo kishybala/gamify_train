@@ -85,28 +85,27 @@ const useStudents = (db, isAuthReady, userId) => {
     useEffect(() => {
         if (!db || !isAuthReady || !userId) return;
 
-        const studentsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'students');
-        const studentQuery = query(studentsCollectionRef);
+        const usersCollectionRef = collection(db, 'users');
+        const userQuery = query(usersCollectionRef);
 
-        const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
-            // Filter: Only include the currently logged-in user
-            const studentList = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }))
-                .filter(student => student.id === userId);  // <-- Only show the current user
+        const unsubscribe = onSnapshot(userQuery, (snapshot) => {
+            // Fetch all users
+            const userList = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }));
 
-            // Sort by points descending (optional, single user is fine)
-            studentList.sort((a, b) => b.totalPoints - a.totalPoints);
+            // Sort by points descending
+            userList.sort((a, b) => b.totalPoints - a.totalPoints);
 
             // Add rank
-            const rankedList = studentList.map((student, index) => ({
-                ...student,
+            const rankedList = userList.map((user, index) => ({
+                ...user,
                 rank: index + 1
             }));
 
             setStudents(rankedList);
             setIsLoading(false);
         }, (error) => {
-            console.error("Listening for students failed:", error);
+            console.error("Listening for users failed:", error);
             setIsLoading(false);
         });
 
@@ -233,12 +232,15 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
         }
 
         try {
-            const studentRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', student.id);
+            const studentRef = doc(db, 'users', student.id);
             const studentSnap = await getDoc(studentRef);
 
-            const currentData = studentSnap.exists() ? studentSnap.data() : { totalPoints: 0, transactions: [] };
-            const newTotalPoints = (currentData.totalPoints || 0) + pointsToAdd;
+            let currentData = { totalPoints: 0, transactions: [] };
+            if (studentSnap.exists()) {
+                currentData = studentSnap.data();
+            }
 
+            const newTotalPoints = (currentData.totalPoints || 0) + pointsToAdd;
             const newTransaction = {
                 timestamp: Date.now(),
                 points: pointsToAdd,
@@ -246,23 +248,32 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
                 adminId: adminId || 'unknown_admin',
             };
 
-            // Firestore update
-            await setDoc(studentRef, {
-                totalPoints: newTotalPoints,
-                transactions: [...(currentData.transactions || []), newTransaction],
-            }, { merge: true });
+            if (studentSnap.exists()) {
+                // Update existing student
+                await updateDoc(studentRef, {
+                    totalPoints: newTotalPoints,
+                    transactions: [...(currentData.transactions || []), newTransaction],
+                });
+            } else {
+                // Create new student document
+                await setDoc(studentRef, {
+                    name: student.name,
+                    totalPoints: newTotalPoints,
+                    transactions: [newTransaction],
+                });
+            }
 
             // Instant local UI update
             setStudents(prev => prev.map(s =>
                 s.id === student.id
-                    ? { ...s, totalPoints: newTotalPoints, transactions: [...s.transactions, newTransaction] }
+                    ? { ...s, totalPoints: newTotalPoints, transactions: [...(s.transactions || []), newTransaction] }
                     : s
             ));
 
             setNotification({ message: `${pointsToAdd} points assigned to ${student.name}!`, type: 'success' });
             setPoints(0);
             setReason('');
-            onClose(); // close panel
+            onClose();
         } catch (error) {
             console.error("Error giving points:", error);
             setNotification({ message: "Failed to assign points.", type: 'error' });
