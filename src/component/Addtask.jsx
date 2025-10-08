@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Zap } from "lucide-react";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../firebase"; // Firebase config file
 
 export default function AddTask({ currentUser, tasks, setTasks }) {
   const navigate = useNavigate();
@@ -23,13 +25,12 @@ export default function AddTask({ currentUser, tasks, setTasks }) {
   const [deadline, setDeadline] = useState("");
   const [statusMessage, setStatusMessage] = useState(null);
 
-  // Assign to options
   const roles = ["Council", "Mentor", "Student"];
 
   const inputClass =
     "w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!taskName || !desc || !assignedTo || !deadline) {
       setStatusMessage({
         type: "error",
@@ -39,30 +40,39 @@ export default function AddTask({ currentUser, tasks, setTasks }) {
     }
 
     const newTask = {
-      id: Date.now(),
       title: taskName,
       desc,
       points,
       category,
       assignedTo,
       deadline,
-      status: "Pending",  // ✅ Task ka initial status
+      status: "Pending",
       volunteersList: [],
       required: 1,
       isVolunteered: false,
       tag: category,
     };
 
-    setTasks([newTask, ...tasks]);
-    setStatusMessage({ type: "success", text: `Task "${taskName}" submitted!` });
+    try {
+      // Firebase me add karenge
+      const docRef = await addDoc(collection(db, "tasks"), newTask);
 
-    setTaskName("");
-    setDesc("");
-    setPoints(10);
-    setCategory("Behavior");
-    setAssignedTo("");
-    setDeadline("");
-    setTimeout(() => setStatusMessage(null), 4000);
+      // Local state update for instant UI
+      setTasks((prev) => [{ ...newTask, id: docRef.id }, ...prev]);
+
+      setStatusMessage({ type: "success", text: `Task "${taskName}" submitted!` });
+
+      setTaskName("");
+      setDesc("");
+      setPoints(10);
+      setCategory("Behavior");
+      setAssignedTo("");
+      setDeadline("");
+      setTimeout(() => setStatusMessage(null), 4000);
+    } catch (error) {
+      console.error("Error adding task: ", error);
+      setStatusMessage({ type: "error", text: "Failed to add task. Try again!" });
+    }
   };
 
   return (
