@@ -70,9 +70,13 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
         </div>
 
         <p className="text-gray-600 mb-2 text-sm">{task.desc}</p>
-        <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Assigned To:</span> {task.assignedTo}</p>
+        <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Assign Department:</span> {task.assignedTo}</p>
         <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Points:</span> {task.points}</p>
         <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Deadline:</span> {task.deadline || 'N/A'}</p>
+        <p className="text-gray-700 mb-2 text-sm">
+          <span className="font-semibold">Member Number:</span> {task.memberNumber || 'N/A'}
+        </p>
+
 
         <div className="mb-4 h-2 bg-green-200 rounded-full">
           <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }}></div>
@@ -108,7 +112,6 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
   const navigate = useNavigate();
 
-  // ✅ Fetch real user data from Firebase (Option 2)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -146,10 +149,9 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   }, []);
 
   // Show profile-only first
-  useEffect(() => {
-    const savedTasks = localStorage.getItem("dashboardTasks");
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
-
+ useEffect(() => {
+  const savedTasks = localStorage.getItem("dashboardTasks");
+  if (savedTasks) setTasks(JSON.parse(savedTasks));
     const timer = setTimeout(() => {
       setShowDashboard(true);
     }, 3000);
@@ -301,7 +303,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
                     {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
                       <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold"><User className="w-5 h-5 mr-2" /> Add Task</Link>
                     )}
-                    <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
+                    <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold"><LogOut className="w-5 h-5 mr-2" /> Logout</button>
                   </div>
                 )}
               </div>
