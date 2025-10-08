@@ -78,26 +78,25 @@ const useFirebase = () => {
     return { db, auth, userId, isAuthReady };
 };
 
-const useStudents = (db, isAuthReady, userId) => {
+const useStudents = (db, isAuthReady) => {
     const [students, setStudents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!db || !isAuthReady || !userId) return;
+        if (!db || !isAuthReady) return;
 
-        const studentsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'students');
+        // Agar aapke students 'users' collection mein hain toh yeh path use karein:
+        const studentsCollectionRef = collection(db, 'users');
         const studentQuery = query(studentsCollectionRef);
 
         const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
-            // Filter: Only include the currently logged-in user
             const studentList = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }))
-                .filter(student => student.id === userId);  // <-- Only show the current user
+                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }));
 
-            // Sort by points descending (optional, single user is fine)
+            // Points ke hisaab se sort karein
             studentList.sort((a, b) => b.totalPoints - a.totalPoints);
 
-            // Add rank
+            // Rank assign karein
             const rankedList = studentList.map((student, index) => ({
                 ...student,
                 rank: index + 1
@@ -111,7 +110,7 @@ const useStudents = (db, isAuthReady, userId) => {
         });
 
         return () => unsubscribe();
-    }, [db, isAuthReady, userId]);
+    }, [db, isAuthReady]);
 
     return { students, setStudents, isLoading };
 };
