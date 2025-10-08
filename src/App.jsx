@@ -11,11 +11,12 @@ import Badge from './component/badges';
 import Pointer from "./component/point";
 import MentorDashboard from './component/mentordash';
 
+
 // --- Mock Current User ---
 const currentUser = {
   id: "current_user_123",
   name: "Soni24!",
-  role: "Council", // Change to "Student" to block AddTask access
+  role: "Council", 
 };
 
 export default function App() {
