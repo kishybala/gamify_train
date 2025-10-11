@@ -173,6 +173,22 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     }
   }, [tasks]);
 
+  // Normalize tasks: ensure unique ids for tasks coming from older versions/localStorage
+  useEffect(() => {
+    if (tasks && tasks.length > 0) {
+      const normalized = tasks.map(t => ({
+        ...t,
+        id: t.id || (`task_${(t.createdAt ? new Date(t.createdAt).getTime() : Date.now())}_${Math.random().toString(36).slice(2,8)}`)
+      }));
+      // If ids were added, persist them
+      const anyMissing = normalized.some((t, i) => t.id !== tasks[i].id);
+      if (anyMissing) {
+        setTasks(normalized);
+        localStorage.setItem("dashboardTasks", JSON.stringify(normalized));
+      }
+    }
+  }, [tasks, setTasks]);
+
   const handleRemoveTask = (taskId) => {
     const updatedTasks = tasks.filter((task) => task.id !== taskId);
     setTasks(updatedTasks);

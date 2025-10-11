@@ -21,7 +21,23 @@ const currentUser = {
 };
 
 export default function App() {
-  const [tasks, setTasks] = useState([]); // All tasks stored here
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dashboardTasks');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      const normalized = parsed.map(t => ({
+        ...t,
+        id: t.id || (`task_${(t.createdAt ? new Date(t.createdAt).getTime() : Date.now())}_${Math.random().toString(36).slice(2,8)}`)
+      }));
+      // Persist normalized back
+      localStorage.setItem('dashboardTasks', JSON.stringify(normalized));
+      return normalized;
+    } catch (e) {
+      console.warn('Failed to load dashboardTasks from localStorage', e);
+      return [];
+    }
+  }); // All tasks stored here
 
   return (
     <Router>

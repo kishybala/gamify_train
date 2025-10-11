@@ -151,7 +151,20 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   // Show profile-only first
  useEffect(() => {
   const savedTasks = localStorage.getItem("dashboardTasks");
-  if (savedTasks) setTasks(JSON.parse(savedTasks));
+  if (savedTasks) {
+    try {
+      const parsed = JSON.parse(savedTasks);
+      // Ensure each task has a unique id
+      const normalized = parsed.map(t => ({
+        ...t,
+        id: t.id || (`task_${(t.createdAt ? new Date(t.createdAt).getTime() : Date.now())}_${Math.random().toString(36).slice(2,8)}`)
+      }));
+      setTasks(normalized);
+      localStorage.setItem("dashboardTasks", JSON.stringify(normalized));
+    } catch (e) {
+      console.warn('Failed to parse dashboardTasks from localStorage', e);
+    }
+  }
     const timer = setTimeout(() => {
       setShowDashboard(true);
     }, 3000);
