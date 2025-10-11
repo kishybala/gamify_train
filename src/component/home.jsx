@@ -1,213 +1,212 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import studentVideo from "../assets/student.mp4";
-import mentorVideo from "../assets/mentor.mp4";
-import bgImage from "../assets/gamify.jpg";
 
-const PROJECT_NAME = "GAMIFY STATION";
-const LETTER_REVEAL_DELAY_MS = 100;
-const INTRO_DURATION_MS = 2500;
+// 🖼️ Assets
+
+import featureImg from "../assets/ruchi.JPG";
+import adminImg from "../assets/study.gif";
+import logo from "../assets/logo.png";
+import task1 from "../assets/task1.png";
+import task2 from "../assets/task2.png";
+import task3 from "../assets/task3.png";
+import task4 from "../assets/task4.png";
+import bgImage from "../assets/imagebg.png";
+
 
 export default function Home() {
-  const [textIndex, setTextIndex] = useState(0);
-  const [stage, setStage] = useState("intro");
   const navigate = useNavigate();
-  const textToDisplay = PROJECT_NAME.split("");
-
-  useEffect(() => {
-    if (stage !== "intro") return;
-
-    if (textIndex < textToDisplay.length) {
-      const timer = setTimeout(
-        () => setTextIndex((prev) => prev + 1),
-        LETTER_REVEAL_DELAY_MS
-      );
-      return () => clearTimeout(timer);
-    }
-
-    if (textIndex === textToDisplay.length) {
-      const transitionTimer = setTimeout(
-        () => setStage("roles"),
-        INTRO_DURATION_MS
-      );
-      return () => clearTimeout(transitionTimer);
-    }
-  }, [stage, textIndex]);
-
-  const roles = [
-    { name: "Student", video: studentVideo, color: "from-green-700 to-green-500" },
-    { name: "Mentor", video: mentorVideo, color: "from-purple-800 to-purple-500" },
-  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden font-sans text-white">
-      {/* 🖼 Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url(${bgImage})`,
-          filter: "brightness(0.6)",
-        }}
-      ></div>
+    <div className="font-sans text-gray-900 min-h-screen flex flex-col">
 
-      {/* ✨ Overlay Blur */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"></div>
-
-      {/* 🫧 Floating Bubbles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 25 }).map((_, i) => (
-          <div key={i} className={`bubble bubble-${i + 1}`}></div>
-        ))}
-      </div>
-
-      {/* 💫 Main Content */}
-      <div className="relative z-20 text-center w-full p-4">
-        {stage === "intro" ? (
-          <h1 className="text-6xl md:text-7xl font-extrabold tracking-widest flex justify-center flex-wrap gap-1">
-            {textToDisplay.map((char, index) => (
-              <span
-                key={index}
-                className="neon-letter"
-                style={{
-                  animation:
-                    index < textIndex
-                      ? `letterPop 0.5s ease-out forwards ${index * LETTER_REVEAL_DELAY_MS}ms, flicker 2s infinite ${index * 100}ms`
-                      : "none",
-                  opacity: index < textIndex ? 1 : 0,
-                }}
-              >
-                {char === " " ? "\u00A0" : char}
-              </span>
-            ))}
+      {/* 🌸 NAVBAR SECTION */}
+      <nav className="flex justify-between items-center px-6 py-4 bg-[#A50355] shadow-lg sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          {/* Logo */}
+          <img src={logo} alt="Logo" className="w-20 h-20 rounded-full  " />
+          <h1 className="text-2xl font-bold tracking-wide text-white">
+            Gamify Station
           </h1>
-        ) : (
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 px-4">
-            {/* 📝 Left Section - About */}
-            <div className="md:w-1/2 text-left">
-              <h2 className="game-heading mb-4">
-                Welcome to Gamify Station
-              </h2>
-              <p className="text-lg leading-relaxed text-gray-200">
-                Level up your learning journey! At Gamify Station, students and mentors
-                collaborate in a dynamic, game-inspired environment. Choose your role and
-                start your adventure today.
-              </p>
-            </div>
+        </div>
 
-            {/* 🟩🟪 Right Section - Roles */}
-            <div className="md:w-1/2 flex flex-col md:flex-row justify-center items-center gap-8">
-              {roles.map((role) => (
-                <div
-                  key={role.name}
-                  onClick={() => {
-                    // Store the selected role in localStorage
-                    localStorage.setItem("selectedRole", role.name);
-                    navigate("/login");
-                  }}
-                  className={`group relative p-6 rounded-2xl bg-gradient-to-br ${role.color} bg-opacity-40 cursor-pointer transform transition-all duration-300 hover:scale-110 hover:rotate-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] role-card w-64`}
-                >
-                  <video
-                    src={role.video}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-44 h-44 mx-auto mb-4 object-contain rounded-lg group-hover:grayscale-0 grayscale transition-all duration-500"
-                  />
-                  <h3 className="text-2xl font-bold group-hover:glitch">{role.name}</h3>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Login Button */}
+        <div>
+          <button
+            onClick={() => navigate("/login")}
+            className="bg-white text-[#A50355] hover:bg-pink-100 px-5 py-2 rounded-md font-semibold transition"
+          >
+            Login
+          </button>
+        </div>
+      </nav>
+
+      {/* 🌟 HERO SECTION */}
+
+
+<section
+  className="relative flex flex-col items-center justify-center text-center px-10 py-40 text-white bg-cover bg-center"
+  style={{ backgroundImage: `url(${bgImage})` }}
+>
+  <div className="absolute inset-0 bg-black/50"></div> {/* Optional dark overlay */}
+
+  <div className="relative z-10">
+    <h2 className="text-4xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+      Welcome to <span className="text-pink-200">Gamify Station</span>
+    </h2>
+    <p className="text-lg md:text-xl max-w-2xl mb-8 text-pink-100">
+      “Level up your learning journey with fun, challenges, and rewards 🏆”
+    </p>
+   
+  
+  </div>
+</section>
+
+
+      {/* 🧠 APPERICIATION  */}
+      <section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-16 py-20 bg-white">
+        {/* Text Block */}
+        <div className="md:w-1/2 mb-8 md:mb-0">
+          <h3 className="text-3xl font-bold mb-4 text-[#A50355]">
+           🌟 Why Gamify Station Stands Out
+          </h3>
+         <p className="text-gray-700 leading-relaxed">
+  Taking points and appreciation from teachers and parents keeps learners motivated and excited to improve. 
+  Every achievement is recognized — whether it’s completing a task, helping a friend, or performing well. 
+  Students can proudly showcase their progress, earn badges, and get real-time appreciation that boosts their confidence and learning spirit.
+</p>
+        </div>
+
+        {/* Image Block */}
+        <div className="md:w-1/2 flex justify-center">
+          <img
+            src={featureImg}
+            alt="Features"
+            className="rounded-xl shadow-lg w-full max-w-md object-cover"
+          />
+        </div>
+      </section>
+
+      {/* 🧑‍🏫 ADMIN SECTION */}
+      <section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-16 py-20 bg-[#A50355] text-white">
+        {/* Image Block */}
+        <div className="md:w-1/2 flex justify-center mb-8 md:mb-0">
+          <img
+            src={adminImg}
+            alt="Admin Features"
+            className="rounded-xl shadow-xl w-20px max-w-md object-cover bg-white/10 p-2"
+          />
+        </div>
+
+        {/* Text Block */}
+        <div className="md:w-1/2 md:text-left text-center">
+          <h3 className="text-3xl font-bold mb-4 text-white">
+            Amazing Features 💼
+          </h3>
+         <ul className="text-pink-100 leading-relaxed list-disc list-inside space-y-2">
+  <li>Get exciting tasks to complete ✍️</li>
+  <li>Raise hand to participate and engage 🙋</li>
+  <li>Earn points for every achievement 🪙</li>
+  <li>Check your rank on the leaderboard 🏆</li>
+  <li>Play fun and interactive games 🎮</li>
+  <li>Unlock badges as you level up 🥇</li>
+</ul>
+        
+        </div>
+      </section>
+
+{/* 📝 CREATIVE TASKS SECTION — Xbox Style */}
+<section className="flex flex-col md:flex-row items-center justify-between px-6 md:px-16 py-20 bg-white">
+  {/* Text Block */}
+  <div className="md:w-1/2 md:text-left text-center mb-8 md:mb-0">
+    <h3 className="text-3xl font-bold mb-4 text-[#A50355]">
+  Mentor Dashboard 🧠
+</h3>
+<p className="text-gray-700 leading-relaxed mb-4">
+  Empower mentors with powerful tools to manage and motivate students effectively. 
+  From tracking progress to rewarding achievements — everything is at their fingertips:
+</p>
+<ul className="list-disc list-inside text-gray-700 space-y-2">
+  <li>✅ Add new tasks and challenges for students</li>
+  <li>🎯 Approve or reject submitted tasks</li>
+  <li>🏆 Give or deduct points based on performance</li>
+  <li>📊 Monitor individual student progress and achievements</li>
+  <li>📅 Manage leaderboard and encourage healthy competition</li>
+</ul>
+
+  
+  </div>
+
+  {/* 🎮 Xbox-style Image Fan Stack */}
+  <div className="md:w-1/2 flex justify-center perspective-[1200px]">
+    <div className="relative flex items-center">
+      {/* Front (main) image */}
+      <img
+        src={task1}
+        alt="Task 1"
+        className="w-40 md:w-60 rounded-lg shadow-2xl z-40 transform rotate-y-[-5deg] translate-x-0 scale-100 hover:scale-105 transition duration-300"
+      />
+
+      {/* 2nd image */}
+      <img
+        src={task4}
+        alt="Task 4"
+        className="absolute rounded-lg shadow-xl left-30 top-2 w-36 md:w-52 z-30 transform rotate-y-[-10deg] translate-x-14 scale-97 hover:scale-100 transition duration-300"
+      />
+
+      {/* 3rd image */}
+      <img
+        src={task3}
+        alt="Task 3"
+        className="absolute rounded-lg shadow-lg left-50 top-4 w-32 md:w-48 z-20 transform rotate-y-[-18deg] translate-x-20 scale-93 hover:scale-97 transition duration-300"
+      />
+
+     
+    </div>
+  </div>
+</section>
+
+      {/* 🌸 FOOTER */}
+     <footer className="bg-[#A50355] py-10 text-white text-sm">
+  <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+
+    {/* 📝 LEFT SIDE — Website Info */}
+    <div>
+      <h3 className="text-xl font-semibold mb-3 text-pink-200">Gamify Station</h3>
+      <p className="text-pink-100 leading-relaxed">
+        Gamify Station is a fun and interactive platform that turns learning into an exciting journey.
+        Students can earn points, unlock badges, and track their progress while teachers and parents
+        appreciate their achievements.
+      </p>
+    </div>
+
+    {/* 👥 RIGHT SIDE — Team + Links */}
+    <div className="flex flex-col md:items-end space-y-4">
+      {/* Team Members */}
+      <div>
+        <h4 className="font-semibold text-lg mb-2 text-pink-200">✨ Team Members</h4>
+        <ul className="text-pink-100 space-y-1 text-right">
+          <li><a href="https://mine-portfolio-eosin.vercel.app/">Kishy Bala</a></li>
+          <li><a href="https://portfolio-soni.netlify.app/">Soni Kumari</a></li>
+          <li><a href="https://portfolio-snowy-chi-44.vercel.app/">Ruchi Kumari</a></li>
+          <li><a href="#">SOP Program</a></li>
+        </ul>
       </div>
 
-      {/* ✨ CSS */}
-      <style jsx="true">{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+     
+    </div>
 
-        .game-heading {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 2.2rem;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: white;
-        }
+  </div>
 
-        .bubble {
-          position: absolute;
-          border-radius: 50%;
-          opacity: 0;
-          animation: floatBubble linear infinite;
-        }
+  {/* 📅 BOTTOM COPYRIGHT */}
+  
+  <div className="border-t border-pink-300/30 mt-8 pt-4 text-center text-pink-100">
+    © {new Date().getFullYear()} Gamify Station — All Rights Reserved.
+       <p className="text-pink-100">
+        Built with ❤️ by SOP Students
+      </p>
+  </div>
+</footer>
 
-        @keyframes floatBubble {
-          0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
-          10% { opacity: 0.7; }
-          50% { opacity: 1; }
-          100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
-        }
-
-        ${Array.from({ length: 25 })
-          .map(
-            (_, i) => `
-          .bubble-${i + 1} {
-            left: ${Math.random() * 100}%;
-            width: ${8 + Math.random() * 20}px;
-            height: ${8 + Math.random() * 20}px;
-            background: radial-gradient(circle, rgba(${Math.floor(
-              Math.random() * 255
-            )}, ${Math.floor(Math.random() * 255)}, ${Math.floor(
-              Math.random() * 255
-            )}, 0.8), transparent);
-            animation-duration: ${15 + Math.random() * 20}s;
-            animation-delay: ${Math.random() * 20}s;
-          }
-        `
-          )
-          .join("")}
-
-        @keyframes letterPop {
-          0% { transform: translateY(20px) scale(0.5); opacity: 0; filter: blur(4px); }
-          60% { transform: translateY(-5px) scale(1.2); opacity: 1; }
-          100% { transform: translateY(0) scale(1); opacity: 1; }
-        }
-
-        @keyframes flicker {
-          0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
-          20%, 24%, 55% { opacity: 0; }
-        }
-
-        .neon-letter {
-          color: #fff;
-          text-shadow: 0 0 5px #fff, 0 0 15px #ff005b, 0 0 30px #ff005b;
-        }
-
-        .flicker-text {
-          animation: flicker 3s infinite;
-          text-shadow: 0 0 5px #fff, 0 0 15px #ff0000, 0 0 30px #ff0000;
-        }
-
-        .group-hover\\:glitch:hover {
-          position: relative;
-          color: #fff;
-          text-shadow: 2px 2px #ff005b, -2px -2px #00ffff;
-          animation: glitchAnim 0.3s infinite;
-        }
-
-        @keyframes glitchAnim {
-          0% { transform: translate(0); }
-          20% { transform: translate(-2px, 2px); }
-          40% { transform: translate(-2px, -2px); }
-          60% { transform: translate(2px, 2px); }
-          80% { transform: translate(2px, -2px); }
-          100% { transform: translate(0); }
-        }
-
-        .role-card:hover {
-          box-shadow: 0 0 25px rgba(255, 0, 90, 0.5), 0 0 50px rgba(255, 0, 90, 0.3);
-        }
-      `}</style>
     </div>
   );
 }
