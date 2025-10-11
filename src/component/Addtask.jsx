@@ -51,17 +51,19 @@ const handleSubmit = async () => {
     memberNumber,
     status: "Pending",
     volunteersList: [],
-    required: 1,
+    required: Number(memberNumber) || 1,
     isVolunteered: false,
     tag: category,
     createdAt: new Date(),
   };
 
   try {
-    await addDoc(collection(db, "tasks"), newTask);
+    const docRef = await addDoc(collection(db, "tasks"), newTask);
+
+    const newTaskWithId = { ...newTask, id: docRef.id };
 
     setTasks(prev => {
-      const updated = [...prev, newTask];
+      const updated = [...prev, newTaskWithId];
       localStorage.setItem("dashboardTasks", JSON.stringify(updated));
       return updated;
     });
