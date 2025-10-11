@@ -232,7 +232,7 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
         }
 
         try {
-            const studentRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', student.id);
+            const studentRef = doc(db, 'users', student.id);
             const studentSnap = await getDoc(studentRef);
 
             const currentData = studentSnap.exists() ? studentSnap.data() : { totalPoints: 0, transactions: [] };
@@ -245,16 +245,21 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
                 adminId: adminId || 'unknown_admin',
             };
 
-            // Firestore update
+            // Firestore update - Save to users collection for leaderboard
             await setDoc(studentRef, {
-                totalPoints: newTotalPoints,
+                name: student.name,
+                email: student.email,
+                points: newTotalPoints,  // Changed from totalPoints to points
+                totalPoints: newTotalPoints,  // Keep both for compatibility
+                lastReason: newReason,
+                lastUpdated: Date.now(),
                 transactions: [...(currentData.transactions || []), newTransaction],
             }, { merge: true });
 
             // Instant local UI update
             setStudents(prev => prev.map(s =>
                 s.id === student.id
-                    ? { ...s, totalPoints: newTotalPoints, transactions: [...s.transactions, newTransaction] }
+                    ? { ...s, points: newTotalPoints, totalPoints: newTotalPoints, transactions: [...s.transactions, newTransaction] }
                     : s
             ));
 
