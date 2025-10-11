@@ -14,8 +14,9 @@ import {
   Bell,
   CheckCircle,
 } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 // --- Task Card for Mentor with Volunteers & Approve/Reject ---
 const TaskCard = ({ task, onRemoveTask, onApprove, onReject }) => {
@@ -111,12 +112,51 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   const [blinkBell, setBlinkBell] = useState(false);
   const navigate = useNavigate();
 
-  const storedUser = JSON.parse(localStorage.getItem("currentUser"));
-  const currentUserData =
-    currentUser || storedUser || { role: "Mentor", name: "Mentor" };
+  const storedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const [currentUserData, setCurrentUserData] = useState(
+    currentUser || storedUser || { role: "Mentor", name: "Mentor", id: null }
+  );
   const [profilePic, setProfilePic] = useState(
     localStorage.getItem("profilePic") || currentUserData.profilePic || null
   );
+
+  // ✅ Fetch real user data from Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          // Helper function to extract first name from email
+          const extractFirstName = (displayName, email) => {
+            if (displayName && displayName.trim()) {
+              return displayName.split(' ')[0];
+            }
+            if (email) {
+              const emailPart = email.split('@')[0];
+              const cleanName = emailPart.replace(/[0-9._-]/g, '');
+              return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+            }
+            return "User";
+          };
+          
+          const firstName = userData.name || extractFirstName(user.displayName, user.email);
+          const updatedUser = {
+            id: user.uid,
+            name: firstName,
+            email: user.email,
+            role: userData.role || "Mentor",
+          };
+          console.log("Mentor Dashboard - Updated User Data:", updatedUser);
+          localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+          setCurrentUserData(updatedUser);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // --- Notifications ---
   useEffect(() => {
@@ -368,7 +408,7 @@ export function AddTask({ tasks, setTasks }) {
     const updatedTasks = [...tasks, newTask];
     setTasks(updatedTasks);
     localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-    navigate("/dashboard"); // redirect to Mentor Dashboard
+    navigate("/mentor-dashboard"); // redirect to Mentor Dashboard
   };
 
   return (

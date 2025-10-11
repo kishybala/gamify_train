@@ -10,6 +10,7 @@ import AddTask from './component/Addtask';
 import Badge from './component/badges';
 import Pointer from "./component/point";
 import MentorDashboard from './component/mentordash';
+import UserProfile from './component/UserProfile';
 
 
 // --- Mock Current User ---
@@ -42,6 +43,7 @@ export default function App() {
           path="/leaderboard"
           element={<Leaderboard currentUser={currentUser} />}
         />
+
         <Route
           path="/mentor-dashboard"
           element={<MentorDashboard tasks={tasks} setTasks={setTasks} currentUser={currentUser} />}
@@ -61,6 +63,10 @@ export default function App() {
         <Route
           path="/point"
           element={<Pointer />}
+        />
+        <Route
+          path="/user-profile"
+          element={<UserProfile />}
         />
         
       </Routes>

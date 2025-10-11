@@ -99,7 +99,11 @@ export default function Home() {
               {roles.map((role) => (
                 <div
                   key={role.name}
-                  onClick={() => navigate("/login")}
+                  onClick={() => {
+                    // Store the selected role in localStorage
+                    localStorage.setItem("selectedRole", role.name);
+                    navigate("/login");
+                  }}
                   className={`group relative p-6 rounded-2xl bg-gradient-to-br ${role.color} bg-opacity-40 cursor-pointer transform transition-all duration-300 hover:scale-110 hover:rotate-1 hover:shadow-[0_0_25px_rgba(255,255,255,0.4)] role-card w-64`}
                 >
                   <video

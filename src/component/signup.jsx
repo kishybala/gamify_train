@@ -1,6 +1,5 @@
-// 📁 src/component/signup.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -9,6 +8,20 @@ import {
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
+  // Helper function to extract first name from email or display name
+  const extractFirstName = (displayName, email) => {
+    if (displayName && displayName.trim()) {
+      return displayName.split(' ')[0]; // Get first word of display name
+    }
+    if (email) {
+      const emailPart = email.split('@')[0];
+      // Remove numbers and special characters, capitalize first letter
+      const cleanName = emailPart.replace(/[0-9._-]/g, '');
+      return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    }
+    return "User";
+  };
+
 export default function SignupPage() {
   const [form, setForm] = useState({
     name: "",
@@ -16,24 +29,28 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
-
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // Get selected role from localStorage
+  const selectedRole = localStorage.getItem("selectedRole");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // 📝 Email + Password Signup
+  // ✨ Email + Password Signup
   const handleSignup = async (e) => {
     e.preventDefault();
-
+    setError("");
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match");
       return;
     }
 
+    setLoading(true);
     try {
-      // 1️⃣ Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         form.email,
@@ -41,48 +58,16 @@ export default function SignupPage() {
       );
       const user = userCredential.user;
 
-      // 2️⃣ Firestore — Create a new document in "users" collection ✅
-      await setDoc(doc(db, "users", user.uid), {
-        name: form.name,
-        email: form.email,
-        role: "Student",       // 👈 Default role (ya dropdown se lo)
-        points: 0,            // 👈 Leaderboard ke liye
-        createdAt: serverTimestamp(),
-      });
+            // Get the selected role from localStorage, default to "Student"
+      const selectedRole = localStorage.getItem("selectedRole") || "Student";
+      const firstName = extractFirstName(user.displayName, user.email);
 
-      // 3️⃣ Save user data to localStorage for Dashboard use
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify({
-          id: user.uid,
-          name: form.name,
-          email: form.email,
-          role: "Student",
-        })
-      );
-
-      alert("✅ Account created successfully!");
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Signup error:", error.message);
-      alert(error.message);
-    }
-  };
-
-  // 🌐 Google Sign-In
-  const handleGoogleSignup = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      // Firestore — create if not exists
       await setDoc(
         doc(db, "users", user.uid),
         {
-          name: user.displayName || "",
+          name: firstName,
           email: user.email,
-          role: "Student",
+          role: selectedRole,
           points: 0,
           createdAt: serverTimestamp(),
         },
@@ -93,35 +78,112 @@ export default function SignupPage() {
         "currentUser",
         JSON.stringify({
           id: user.uid,
-          name: user.displayName || "",
+          name: firstName,
           email: user.email,
-          role: "Student",
+          role: selectedRole,
         })
       );
 
-      navigate("/dashboard");
-    } catch (error) {
-      console.error("Google sign-in error:", error.message);
-      alert(error.message);
+      // Redirect based on selected role
+      if (selectedRole === "Mentor") {
+        navigate("/mentor-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+      
+      // Clear the selected role from localStorage
+      localStorage.removeItem("selectedRole");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🌐 Google Sign-Up
+  const handleGoogleSignup = async () => {
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Get the selected role from localStorage, default to "Student"
+      const selectedRole = localStorage.getItem("selectedRole") || "Student";
+      
+      // Extract first name from email or display name
+      const firstName = extractFirstName(user.email, user.displayName);
+
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name: firstName,
+          email: user.email,
+          role: selectedRole,
+          points: 0,
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          id: user.uid,
+          name: firstName,
+          email: user.email,
+          role: selectedRole,
+        })
+      );
+
+      // Redirect based on selected role
+      if (selectedRole === "Mentor") {
+        navigate("/mentor-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+      
+      // Clear the selected role from localStorage
+      localStorage.removeItem("selectedRole");
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-300 to-yellow-200">
-      <div className="w-[400px] bg-[#fff8e1] rounded-2xl shadow-xl p-6 border-4 border-yellow-400">
-        <h1 className="text-3xl font-bold text-yellow-600 text-center mb-4">
-          Sign Up
-        </h1>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden font-sans">
+      {/* 🌈 Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-blue-950 to-black">
+        <div className="ambient-blob blob-1 bg-pink-400"></div>
+        <div className="ambient-blob blob-2 bg-blue-500"></div>
+        <div className="ambient-blob blob-3 bg-amber-300"></div>
+      </div>
 
-        {/* 📝 Signup Form */}
-        <form onSubmit={handleSignup} className="space-y-3">
+      {/* ✨ Signup Box */}
+      <div className="relative z-20 bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-xl max-w-sm w-full">
+        <h2 className="text-3xl font-bold text-white mb-6 text-center">
+          Sign Up
+        </h2>
+        
+        {/* Role Indicator */}
+        {selectedRole && (
+          <div className="mb-4 p-3 bg-blue-500/20 rounded-lg text-center">
+            <p className="text-blue-200 text-sm">
+              Selected Role: <span className="font-bold text-blue-100">{selectedRole}</span>
+            </p>
+          </div>
+        )}
+
+        <form onSubmit={handleSignup} className="space-y-4">
           <input
             type="text"
             name="name"
             placeholder="Full Name"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
             value={form.name}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
             required
           />
 
@@ -129,9 +191,9 @@ export default function SignupPage() {
             type="email"
             name="email"
             placeholder="Email"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
             value={form.email}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
             required
           />
 
@@ -139,9 +201,9 @@ export default function SignupPage() {
             type="password"
             name="password"
             placeholder="Password"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
             value={form.password}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
             required
           />
 
@@ -149,44 +211,82 @@ export default function SignupPage() {
             type="password"
             name="confirmPassword"
             placeholder="Confirm Password"
+            className="w-full p-3 rounded-xl bg-white/10 text-white placeholder-gray-400 focus:ring-2 focus:ring-pink-400 focus:outline-none"
             value={form.confirmPassword}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-yellow-400 focus:ring-2 focus:ring-yellow-400"
             required
           />
 
+          {error && (
+            <div className="text-red-400 text-sm bg-red-900/50 p-2 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700"
+            disabled={loading}
+            className="w-full bg-pink-400 py-3 rounded-xl font-bold text-white transition hover:bg-pink-500 disabled:opacity-50"
           >
-            Sign Up
+            {loading ? "Creating..." : "Sign Up"}
           </button>
-        </form>
 
-        {/* 🌐 Google Signup */}
-        <div className="mt-4">
           <button
+            type="button"
             onClick={handleGoogleSignup}
-            className="w-full bg-red-500 text-white py-2 rounded-lg font-bold hover:bg-red-600 flex items-center justify-center gap-2"
+            className="w-full bg-white text-black py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-100 transition"
           >
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-              alt="Google logo"
+              alt="Google"
               className="w-5 h-5"
             />
             Continue with Google
           </button>
-        </div>
 
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => navigate("/")}
-            className="text-yellow-600 font-semibold hover:underline"
-          >
-            Back to Login
-          </button>
-        </div>
+          <p className="text-gray-300 text-sm text-center mt-3">
+            Already have an account?{" "}
+            <Link to="/login" className="text-pink-400 underline hover:text-pink-300">
+              Login
+            </Link>
+          </p>
+        </form>
       </div>
+
+      {/* ✨ Ambient Blob Animation CSS */}
+      <style jsx="true">{`
+        .ambient-blob {
+          position: absolute;
+          width: 300px;
+          height: 300px;
+          filter: blur(100px);
+          opacity: 0.6;
+          border-radius: 50%;
+          animation: moveBlob 20s infinite alternate ease-in-out;
+        }
+        .blob-1 {
+          top: -100px;
+          left: -100px;
+        }
+        .blob-2 {
+          bottom: -120px;
+          right: -150px;
+          animation-duration: 25s;
+        }
+        .blob-3 {
+          top: 50%;
+          left: 60%;
+          animation-duration: 30s;
+        }
+        @keyframes moveBlob {
+          0% {
+            transform: translate(0, 0) scale(1);
+          }
+          100% {
+            transform: translate(50px, 80px) scale(1.2);
+          }
+        }
+      `}</style>
     </div>
   );
 }

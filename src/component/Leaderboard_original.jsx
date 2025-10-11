@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell, Search, X } from 'lucide-react';
+import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Leaderboard() {
-  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -17,26 +16,25 @@ export default function Leaderboard() {
   );
   const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("All");
+  const [departmentFilter, setDepartmentFilter] = useState("All");
   const [timePeriod, setTimePeriod] = useState("monthly");
+
+  const navigate = useNavigate();
 
   // Fetch users from Firestore
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        console.log("Starting to fetch users...");
         const q = query(collection(db, "users"), orderBy("points", "desc"));
         const querySnapshot = await getDocs(q);
-        console.log("Users query successful, processing data...");
         const usersList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-        console.log("Users fetched:", usersList.length, "users");
         setUsers(usersList);
       } catch (error) {
         console.error("Error fetching users: ", error);
-        setUsers([]); // Set empty array on error
       }
     };
 
@@ -58,38 +56,20 @@ export default function Leaderboard() {
     const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
     if (savedTasks.length > 0) {
       setNotifications(savedTasks.map(task => ({ id: task.id, title: task.title, time: Date.now() })));
-      setBlinkBell(true);
-      setTimeout(() => setBlinkBell(false), 3000);
+
+      if (savedTasks.some(t => !notifications.find(n => n.id === t.id))) {
+        setBlinkBell(true);
+        setTimeout(() => setBlinkBell(false), 3000);
+      }
     }
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setNotifications(prev => {
-        const filtered = prev.filter(n => Date.now() - n.time < 60000);
-        // Only update if there's actually a change
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-    }, 5000); // Changed from 1000 to 5000 (5 seconds)
+      setNotifications(prev => prev.filter(n => Date.now() - n.time < 60000));
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  // Handle ESC key to close search
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && searchOpen) {
-        setSearchOpen(false);
-      }
-    };
-    
-    if (searchOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [searchOpen]);
 
   const handleProfileChange = (e) => {
     const file = e.target.files[0];
@@ -113,23 +93,17 @@ export default function Leaderboard() {
     }
   };
 
-  // Navigate to user profile
-  const handleUserClick = (user) => {
-    console.log("User clicked:", user);
-    // Store selected user data for profile page
-    localStorage.setItem("selectedUserProfile", JSON.stringify(user));
-    console.log("Navigating to user profile...");
-    navigate("/user-profile");
-  };
-
-  // Filter users based on search term only
+  // Filter users based on search term, role, and department
   const filteredUsers = users.filter(user => {
-    if (!searchTerm) return true;
+    if (!searchTerm && roleFilter === "All" && departmentFilter === "All") return true;
     
     const searchLower = searchTerm.toLowerCase();
-    const name = user.name || user.email || "";
+    const matchesSearch = user.name?.toLowerCase().includes(searchLower) || 
+                         user.email?.toLowerCase().includes(searchLower);
+    const matchesRole = roleFilter === "All" || user.role === roleFilter;
+    const matchesDepartment = departmentFilter === "All" || user.department === departmentFilter;
     
-    return name.toLowerCase().includes(searchLower);
+    return (!searchTerm || matchesSearch) && matchesRole && matchesDepartment;
   });
 
   // Get Top 3 users for podium
@@ -165,16 +139,6 @@ export default function Leaderboard() {
           </div>
           <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
             <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
-          </div>
-
-          {/* Search Icon */}
-          <div className="relative">
-            <button 
-              onClick={() => setSearchOpen(!searchOpen)} 
-              className="p-2 rounded-full hover:bg-gray-100 transition"
-            >
-              <Search className="w-6 h-6" />
-            </button>
           </div>
 
           {/* Menu */}
@@ -222,57 +186,46 @@ export default function Leaderboard() {
         </div>
       </header>
 
-      {/* Search Dropdown */}
-      {searchOpen && (
-        <div className="fixed top-20 left-0 right-0 z-50 px-6">
-          <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl border border-gray-200 p-5 transform transition-all duration-300 hover:scale-105">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-blue-50 rounded-xl">
-                <Search className="w-5 h-5 text-blue-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800">Search Users</h3>
-                <p className="text-xs text-gray-500">Find users on the leaderboard</p>
-              </div>
-              <button 
-                onClick={() => setSearchOpen(false)}
-                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                title="Close search"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <input
-              type="text"
-              placeholder="Type name to search users..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-300 text-center placeholder-gray-400"
-              autoFocus
-            />
-            <div className="mt-3 flex items-center justify-between text-sm">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                searchTerm 
-                  ? filteredUsers.length > 0 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-red-100 text-red-700'
-                  : 'bg-gray-100 text-gray-600'
-              }`}>
-                {searchTerm 
-                  ? `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''} found` 
-                  : '🔍 Start typing to search'}
-              </span>
-              <span className="text-xs text-gray-400">Press ESC to close</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Leaderboard Content --- */}
+      {/* --- Leaderboard Filters & Content --- */}
       <div className="min-h-screen p-6 bg-gradient-to-b from-gray-50 to-green-50">
         <h1 className="text-3xl font-extrabold text-center mb-6 text-gray-800">🏆 Leaderboard</h1>
 
+        {/* Search Filter */}
+        <div className="max-w-lg mx-auto mb-6">
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full px-6 py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400 hover:shadow-md transition text-center"
+          />
+        </div>
 
+        {/* Role & Department Filters */}
+        <div className="flex justify-center mb-6 space-x-4">
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="All">All Roles</option>
+            <option value="Student">Student</option>
+            <option value="Mentor">Mentor</option>
+            <option value="Council">Council</option>
+          </select>
+
+          <select
+            value={departmentFilter}
+            onChange={e => setDepartmentFilter(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="All">All Departments</option>
+            <option value="Tech">Tech</option>
+            <option value="Design">Design</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Operations">Operations</option>
+          </select>
+        </div>
 
         {/* Top 3 Podium Display */}
         {topThreeUsers.length >= 1 && (
@@ -299,6 +252,7 @@ export default function Leaderboard() {
                       className="w-20 h-20 rounded-full object-cover mx-auto mb-4 border-3 border-gray-300 shadow-md group-hover:scale-110 transition-transform duration-300"
                     />
                     <h3 className="text-lg font-bold text-gray-800 mb-2">{topThreeUsers[1].name?.split(' ')[0] || topThreeUsers[1].email?.split('@')[0]}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{topThreeUsers[1].role} | {topThreeUsers[1].department}</p>
                     <div className="bg-gray-100 rounded-full px-4 py-2 mb-3">
                       <span className="text-lg font-bold text-gray-700">{topThreeUsers[1].points} pts</span>
                     </div>
@@ -324,6 +278,7 @@ export default function Leaderboard() {
                     className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-yellow-400 shadow-xl group-hover:scale-125 transition-transform duration-300"
                   />
                   <h3 className="text-2xl font-bold text-gray-800 mb-3">{topThreeUsers[0].name?.split(' ')[0] || topThreeUsers[0].email?.split('@')[0]}</h3>
+                  <p className="text-md text-gray-600 mb-3">{topThreeUsers[0].role} | {topThreeUsers[0].department}</p>
                   <div className="bg-gradient-to-r from-yellow-200 to-yellow-400 rounded-full px-6 py-3 mb-4">
                     <span className="text-xl font-bold text-yellow-800">{topThreeUsers[0].points} pts</span>
                   </div>
@@ -348,6 +303,7 @@ export default function Leaderboard() {
                       className="w-16 h-16 rounded-full object-cover mx-auto mb-3 border-3 border-orange-300 shadow-md group-hover:scale-110 transition-transform duration-300"
                     />
                     <h3 className="text-base font-bold text-gray-800 mb-2">{topThreeUsers[2].name?.split(' ')[0] || topThreeUsers[2].email?.split('@')[0]}</h3>
+                    <p className="text-xs text-gray-600 mb-2">{topThreeUsers[2].role} | {topThreeUsers[2].department}</p>
                     <div className="bg-orange-100 rounded-full px-3 py-2 mb-3">
                       <span className="text-base font-bold text-orange-700">{topThreeUsers[2].points} pts</span>
                     </div>
@@ -366,10 +322,12 @@ export default function Leaderboard() {
           
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4">
-              <div className="grid grid-cols-4 gap-4 font-bold text-center">
+              <div className="grid grid-cols-6 gap-4 font-bold text-center">
                 <span>Rank</span>
                 <span>Profile</span>
                 <span>Name</span>
+                <span>Role</span>
+                <span>Department</span>
                 <span>Points</span>
               </div>
             </div>
@@ -377,9 +335,7 @@ export default function Leaderboard() {
             <div className="divide-y divide-gray-100">
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user, index) => (
-                  <div key={user.id || index} 
-                       onClick={() => handleUserClick(user)}
-                       className={`grid grid-cols-4 gap-4 p-4 text-center items-center hover:bg-gray-50 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-md ${
+                  <div key={user.id || index} className={`grid grid-cols-6 gap-4 p-4 text-center items-center hover:bg-gray-50 transition-all duration-300 ${
                     index < 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 font-semibold' : ''
                   }`}>
                     <div className="flex items-center justify-center">
@@ -402,6 +358,21 @@ export default function Leaderboard() {
                     
                     <div className="font-medium text-gray-800">
                       {user.name?.split(' ')[0] || user.email?.split('@')[0] || 'Unknown'}
+                    </div>
+                    
+                    <div className={`text-sm font-medium px-2 py-1 rounded-full ${
+                      user.role === 'Council' ? 'bg-red-100 text-red-700' :
+                      user.role === 'Mentor' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {user.role || 'Student'}
+                    </div>
+                    
+                    <div className={`text-sm font-medium px-2 py-1 rounded-full ${
+                      user.department === 'Tech' ? 'bg-purple-100 text-purple-700' :
+                      user.department === 'Design' ? 'bg-pink-100 text-pink-700' :
+                      user.department === 'Marketing' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {user.department || 'General'}
                     </div>
                     
                     <div className={`font-bold ${
