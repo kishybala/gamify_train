@@ -11,8 +11,6 @@ import Badge from './component/badges';
 import Pointer from "./component/point";
 import MentorDashboard from './component/mentordash';
 import UserProfile from './component/UserProfile';
-
-
 // --- Mock Current User ---
 const currentUser = {
   id: "current_user_123",
@@ -68,7 +66,6 @@ export default function App() {
           path="/user-profile"
           element={<UserProfile />}
         />
-        
       </Routes>
     </Router>
   );
