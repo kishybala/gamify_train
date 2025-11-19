@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 // --- Task Card for Mentor with Volunteers & Approve/Reject ---
 const TaskCard = ({ task, onRemoveTask, onApprove, onReject }) => {
@@ -227,9 +227,21 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         setProfilePic(reader.result);
         localStorage.setItem("profilePic", reader.result);
+        
+        // Also save to Firestore
+        if (currentUserData.id) {
+          try {
+            const userRef = doc(db, "users", currentUserData.id);
+            await updateDoc(userRef, {
+              profilePic: reader.result
+            });
+          } catch (error) {
+            console.error("Error updating profile picture in database:", error);
+          }
+        }
       };
       reader.readAsDataURL(file);
     }

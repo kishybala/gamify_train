@@ -11,6 +11,16 @@ export default function UserProfile() {
   );
   const navigate = useNavigate();
 
+  // Helper function to get profile image with fallback logic
+  const getProfileImage = (user) => {
+    // For current user, prioritize localStorage
+    if (user && user.id === currentUserData.id) {
+      return localStorage.getItem("profilePic") || user.profilePic || "https://via.placeholder.com/150";
+    }
+    // For other users, use their database profilePic
+    return (user && user.profilePic) || "https://via.placeholder.com/150";
+  };
+
   // Calculate category-wise points from transactions
   const calculateCategoryPoints = (transactions = []) => {
     const categories = {
@@ -111,7 +121,7 @@ export default function UserProfile() {
               {/* Profile Picture */}
               <div className="relative">
                 <img 
-                  src={selectedUser.profilePic || "https://via.placeholder.com/150"} 
+                  src={getProfileImage(selectedUser)} 
                   alt="Profile" 
                   className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl"
                 />
