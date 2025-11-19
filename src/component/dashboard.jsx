@@ -112,6 +112,17 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
   const navigate = useNavigate();
 
+  // Helper to produce a display name: prefer `name`, then derive from email local-part
+  const getDisplayName = (user) => {
+    if (!user) return 'User';
+    if (user.name && String(user.name).trim()) return user.name;
+    const email = user.email || '';
+    const local = email.split('@')[0] || '';
+    const clean = local.replace(/[0-9._-]/g, '');
+    if (clean) return clean.charAt(0).toUpperCase() + clean.slice(1);
+    return 'User';
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -261,7 +272,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
               className="w-32 h-32 rounded-full border-4 border-green-400 object-cover mb-4 shadow-lg animate-bounce"
             />
             <h1 className="text-3xl font-bold text-green-700 animate-pulse">
-              Welcome, {currentUserData.name || currentUserData.email} 🌸
+              Welcome, {getDisplayName(currentUserData)} 🌸
             </h1>
             <p className="text-gray-600 mt-2 animate-pulse">Loading your dashboard...</p>
           </div>
@@ -281,11 +292,8 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
                 <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
               </div>
               <div>
-                <span className="text-2xl font-extrabold text-green-600 mr-2">
-                  {currentUserData.name}
-                </span>
                 <div className="text-xl font-bold text-gray-800">
-                  Welcome, <span className="text-green-600">{currentUserData.name}</span>!
+                  Welcome, <span className="text-green-600">{getDisplayName(currentUserData)}</span>!
                 </div>
                 <span className="text-sm text-gray-500">({currentUserData.role})</span>
               </div>

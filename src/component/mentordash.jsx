@@ -112,6 +112,17 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   const [blinkBell, setBlinkBell] = useState(false);
   const navigate = useNavigate();
 
+  // Helper to produce a display name: prefer `name`, then derive from email local-part
+  const getDisplayName = (user) => {
+    if (!user) return 'User';
+    if (user.name && String(user.name).trim()) return user.name;
+    const email = user.email || '';
+    const local = email.split('@')[0] || '';
+    const clean = local.replace(/[0-9._-]/g, '');
+    if (clean) return clean.charAt(0).toUpperCase() + clean.slice(1);
+    return 'User';
+  };
+
   const storedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
   const [currentUserData, setCurrentUserData] = useState(
     currentUser || storedUser || { role: "Mentor", name: "Mentor", id: null }
@@ -260,16 +271,10 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
             />
           </div>
           <div>
-            <span className="text-2xl font-extrabold text-blue-600 mr-2">
-              Mentor Dashboard
-            </span>
             <div className="text-xl font-bold text-gray-800">
-              Welcome,{" "}
-              <span className="text-blue-600">{currentUserData.name}</span>!
+              Welcome, <span className="text-blue-600">{getDisplayName(currentUserData)}</span>!
             </div>
-            <span className="text-sm text-gray-500">
-              ({currentUserData.role})
-            </span>
+            <span className="text-sm text-gray-500">({currentUserData.role})</span>
           </div>
         </div>
 
@@ -299,7 +304,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
                   <User className="w-5 h-5 mr-2" /> Add Task
                 </Link>
                 <Link
-                  to="/points"
+                  to="/Point"
                   className="flex items-center px-4 py-3 hover:bg-yellow-50 hover:text-yellow-600 font-semibold"
                   onClick={() => setMenuOpen(false)}
                 >
