@@ -1,131 +1,138 @@
-import React from 'react';
-import { Award, Lock, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-// Configuration
-const USER_NAME = 'aasiya';
-const INITIAL_TASKS_COMPLETED = 23;
+const USER_NAME = "aasiya";
+const INITIAL_POINTS = 23;
 
-// Rarity Color Mapping
-const RARITY_COLORS = {
-  COMMON: 'bg-gray-500',
-  RARE: 'bg-blue-500',
-  EPIC: 'bg-purple-600',
-  LEGENDARY: 'bg-yellow-500',
-};
-
-// Badge Data
-const ALL_BADGES = [
-  { id: 'starter', name: 'First Step', icon: '🚀', rarity: 'COMMON', unlock_criteria_value: 1 },
-  { id: 'first-ten', name: 'First Ten Tasks', icon: '👍', rarity: 'RARE', unlock_criteria_value: 10 },
-  { id: 'quarter', name: 'Quarter Century', icon: '🌟', rarity: 'EPIC', unlock_criteria_value: 25 },
-  { id: 'half-century', name: 'Half Century', icon: '👑', rarity: 'LEGENDARY', unlock_criteria_value: 50 },
-  { id: 'community', name: 'Community Contributor', icon: '🗣️', rarity: 'RARE', unlock_criteria_value: 20 },
-  { id: 'art', name: 'Art Virtuoso', icon: '🎨', rarity: 'EPIC', unlock_criteria_value: 30 },
-  { id: 'social', name: 'Social Butterfly', icon: '🦋', rarity: 'COMMON', unlock_criteria_value: 5 },
-  { id: 'master', name: 'Master Finisher', icon: '🏆', rarity: 'LEGENDARY', unlock_criteria_value: 100 },
+const LEVELS = [
+  { id: 1, name: "Lemon Drop", icon: "🍋", points: 1 },
+  { id: 2, name: "Candy Factory", icon: "🍬", points: 5 },
+  { id: 3, name: "Chocolate Cave", icon: "🍫", points: 10 },
+  { id: 4, name: "Rainbow Hill", icon: "🌈", points: 15 },
+  { id: 5, name: "Sweet Lake", icon: "🧁", points: 25 },
+  { id: 6, name: "Gummy Garden", icon: "🍭", points: 35 },
+  { id: 7, name: "Final Treat", icon: "🏆", points: 50 },
 ];
 
-// Calculate earned badges
-const calculateEarnedBadges = (tasks) => {
-  return ALL_BADGES.filter((badge) => tasks >= badge.unlock_criteria_value);
-};
-
-export default function BadgesPage() {
+export default function CandyPathOnTrack() {
   const navigate = useNavigate();
-  const [tasksCompleted] = React.useState(INITIAL_TASKS_COMPLETED);
-  const earnedBadges = calculateEarnedBadges(tasksCompleted);
+  const [points, setPoints] = React.useState(INITIAL_POINTS);
 
-  // Get current user to determine which dashboard to return to
-  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
-
-  const sortedBadges = [...ALL_BADGES].sort((a, b) => {
-    const aEarned = earnedBadges.some((eb) => eb.id === a.id);
-    const bEarned = earnedBadges.some((eb) => eb.id === b.id);
-    if (aEarned && !bEarned) return -1;
-    if (!aEarned && bEarned) return 1;
-    return a.unlock_criteria_value - b.unlock_criteria_value;
-  });
+  const getUnlocked = (levelPoints) => points >= levelPoints;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 via-yellow-100 to-purple-100 font-sans p-8">
-      <script src="https://cdn.tailwindcss.com"></script>
-      <style>
-        {`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body { font-family: 'Inter', sans-serif; }`}
-      </style>
-
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(dashboardPath)}
-        className="mb-6 flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Dashboard
-      </button>
-
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold text-gray-800 drop-shadow-lg flex items-center justify-center">
-          <Award size={36} className="text-green-500 mr-3" />
-          {currentUser.name || USER_NAME}'s Badge Collection
-          <Award size={36} className="text-green-500 ml-3" />
+    <div className="min-h-screen bg-gradient-to-b from-pink-100 via-yellow-100 to-blue-100 relative overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 bg-white rounded-full shadow hover:scale-105 transition"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-2xl font-bold text-pink-700 text-center flex-1">
+          {USER_NAME}'s Candy Path 🍬
         </h1>
-        <p className="text-lg text-gray-600 mt-2">
-          You have unlocked <span className="font-bold text-green-600">{earnedBadges.length}</span> out of {ALL_BADGES.length} badges!
-        </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {sortedBadges.map((badge) => {
-          const isEarned = earnedBadges.some((eb) => eb.id === badge.id);
-          const progressPercentage = Math.min(100, (tasksCompleted / badge.unlock_criteria_value) * 100);
-          const rarityColorClass = RARITY_COLORS[badge.rarity] || 'bg-gray-500';
+      {/* Path SVG background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <svg
+          className="w-full h-full"
+          viewBox="0 0 400 1200"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="pathGradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ff3ca6" />
+              <stop offset="50%" stopColor="#ffb800" />
+              <stop offset="100%" stopColor="#39c2ff" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M200 1150 C 300 1000, 100 850, 250 700 S 100 450, 250 300 S 150 150, 200 50"
+            stroke="url(#pathGradient)"
+            strokeWidth="28"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+
+      {/* Level nodes placed on the path */}
+      <div className="absolute top-0 left-0 w-full h-full">
+        {LEVELS.map((lvl, index) => {
+          // Coordinates roughly match the path curve
+          const positions = [
+            { x: 200, y: 1100 },
+            { x: 250, y: 900 },
+            { x: 120, y: 700 },
+            { x: 250, y: 520 },
+            { x: 140, y: 350 },
+            { x: 230, y: 200 },
+            { x: 200, y: 80 },
+          ];
+          const pos = positions[index];
+          const unlocked = getUnlocked(lvl.points);
 
           return (
-            <div
-              key={badge.id}
-              className={`p-5 rounded-2xl border-2 text-center transition-all duration-300 hover:scale-105 shadow-xl ${
-                isEarned ? 'bg-white border-green-500' : 'bg-gray-50 opacity-60 border-gray-300'
-              }`}
+            <motion.div
+              key={lvl.id}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: pos.x - 35,
+                top: pos.y - 35,
+              }}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.15 }}
             >
-              <div className="relative h-16 flex flex-col items-center justify-center mb-3">
-                {!isEarned && <Lock size={36} className="text-gray-400 absolute top-[-10px] z-10 bg-white rounded-full shadow-md" />}
-                <div
-                  className={`text-4xl p-3 rounded-full ${
-                    isEarned ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {badge.icon}
-                </div>
-              </div>
-
-              <h3 className="text-lg font-bold text-gray-800 mt-2">{badge.name}</h3>
-
-              <p
-                className={`text-xs font-semibold uppercase mt-2 mb-3 inline-block py-1 px-3 rounded-full text-white ${
-                  isEarned ? 'bg-green-600' : rarityColorClass
+              <div
+                className={`w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-xl border-4 text-lg font-bold ${
+                  unlocked
+                    ? "bg-gradient-to-br from-green-300 to-lime-500 border-yellow-300 animate-bounce"
+                    : "bg-white border-pink-400"
                 }`}
               >
-                {isEarned ? 'Unlocked' : badge.rarity}
-              </p>
-
-              <p className="text-sm text-gray-600 mb-3">Complete {badge.unlock_criteria_value} Tasks</p>
-
-              <div className="h-2 bg-gray-300 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    isEarned ? 'bg-green-500' : 'bg-purple-400'
-                  }`}
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
+                <div className="text-2xl">{lvl.icon}</div>
+                <div className="text-xs font-semibold">{lvl.id}</div>
               </div>
-              <p className="text-xs text-gray-500 mt-2 font-medium">
-                {isEarned ? '100%' : `${progressPercentage.toFixed(0)}%`} Complete
-              </p>
-            </div>
+
+              <div className="text-center mt-2 text-xs text-gray-700 font-medium bg-white/80 px-2 py-1 rounded-lg shadow-sm">
+                {lvl.name}
+              </div>
+            </motion.div>
           );
         })}
+      </div>
+
+      {/* Floating candies for fun */}
+      <motion.div
+        animate={{ y: [0, -15, 0] }}
+        transition={{ duration: 4, repeat: Infinity }}
+        className="absolute top-10 left-10 text-4xl opacity-70"
+      >
+        🍭
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, -10, 0] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        className="absolute bottom-10 right-10 text-5xl opacity-70"
+      >
+        🍬
+      </motion.div>
+
+      {/* Add points button (demo) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2">
+        <button
+          onClick={() => setPoints((p) => p + 5)}
+          className="bg-gradient-to-r from-pink-500 to-yellow-400 text-white font-semibold px-6 py-2 rounded-full shadow-lg hover:scale-105 transition"
+        >
+          +5 Points
+        </button>
       </div>
     </div>
   );
