@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
+  updateProfile,
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
@@ -60,12 +61,22 @@ export default function SignupPage() {
 
             // Get the selected role from localStorage, default to "Student"
       const selectedRole = localStorage.getItem("selectedRole") || "Student";
+      // Prefer the full name the user typed; otherwise derive a safe first name
       const firstName = extractFirstName(user.displayName, user.email);
+      const nameToSave = (form.name && form.name.trim()) ? form.name.trim() : firstName;
+
+      // Update Firebase Auth profile displayName so other parts of the app can read it
+      try {
+        await updateProfile(user, { displayName: nameToSave });
+      } catch (e) {
+        // Non-fatal: continue even if updateProfile fails
+        console.warn('Failed to update auth profile displayName', e);
+      }
 
       await setDoc(
         doc(db, "users", user.uid),
         {
-          name: firstName,
+          name: nameToSave,
           email: user.email,
           role: selectedRole,
           points: 0,
@@ -78,7 +89,7 @@ export default function SignupPage() {
         "currentUser",
         JSON.stringify({
           id: user.uid,
-          name: firstName,
+          name: nameToSave,
           email: user.email,
           role: selectedRole,
         })
@@ -112,13 +123,23 @@ export default function SignupPage() {
       // Get the selected role from localStorage, default to "Student"
       const selectedRole = localStorage.getItem("selectedRole") || "Student";
       
-      // Extract first name from email or display name
-      const firstName = extractFirstName(user.email, user.displayName);
+      // Extract first name from displayName or email
+      const firstName = extractFirstName(user.displayName, user.email);
+      const nameToSave = firstName;
+
+      // Ensure auth profile has a displayName (Google usually provides it)
+      try {
+        if (!user.displayName) {
+          await updateProfile(user, { displayName: nameToSave });
+        }
+      } catch (e) {
+        console.warn('Failed to set displayName for google user', e);
+      }
 
       await setDoc(
         doc(db, "users", user.uid),
         {
-          name: firstName,
+          name: nameToSave,
           email: user.email,
           role: selectedRole,
           points: 0,
@@ -131,7 +152,7 @@ export default function SignupPage() {
         "currentUser",
         JSON.stringify({
           id: user.uid,
-          name: firstName,
+          name: nameToSave,
           email: user.email,
           role: selectedRole,
         })
