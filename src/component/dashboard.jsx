@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 // --- TaskCard Component ---
 const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
@@ -139,6 +139,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             name: firstName,
             email: user.email,
             role: userData.role || "Student",
+            points: userData.points || 0,
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUserData(updatedUser);
@@ -227,9 +228,21 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         setProfilePic(reader.result);
         localStorage.setItem("profilePic", reader.result);
+        
+        // Also save to Firestore
+        if (currentUserData.id) {
+          try {
+            const userRef = doc(db, "users", currentUserData.id);
+            await updateDoc(userRef, {
+              profilePic: reader.result
+            });
+          } catch (error) {
+            console.error("Error updating profile picture in database:", error);
+          }
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -294,7 +307,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             {/* Right icons */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md">
-                <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
+                <Zap className="w-5 h-5 mr-2" /> <span>Points: {currentUserData.points || 0}</span>
               </div>
               <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md">
                 <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
