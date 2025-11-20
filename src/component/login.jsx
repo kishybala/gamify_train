@@ -28,8 +28,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   
-  // Get selected role from localStorage
-  const selectedRole = localStorage.getItem("selectedRole");
+  // Get selected role from localStorage (use state so UI updates when user picks)
+  const [selectedRole, setSelectedRole] = useState(
+    localStorage.getItem("selectedRole") || ""
+  );
 
   // Helper function to extract first name from email or display name
   const extractFirstName = (displayName, email) => {
@@ -106,6 +108,35 @@ export default function LoginPage() {
       <div className="relative z-20 bg-white/10 backdrop-blur-md p-8 rounded-2xl shadow-xl max-w-sm w-full">
         <h2 className="text-3xl font-bold text-white mb-6 text-center">Login</h2>
         
+        {/* Role Selection: Student / Mentor (appears on login page when navigated from Home) */}
+        <div className="mb-4 flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedRole("Student");
+              localStorage.setItem("selectedRole", "Student");
+            }}
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              selectedRole === "Student" ? "bg-pink-400 text-white" : "bg-white/10 text-white"
+            }`}
+          >
+            Student
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedRole("Mentor");
+              localStorage.setItem("selectedRole", "Mentor");
+            }}
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              selectedRole === "Mentor" ? "bg-pink-400 text-white" : "bg-white/10 text-white"
+            }`}
+          >
+            Mentor
+          </button>
+        </div>
+
         {/* Role Indicator */}
         {selectedRole && (
           <div className="mb-4 p-3 bg-blue-500/20 rounded-lg text-center">

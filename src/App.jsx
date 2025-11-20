@@ -9,12 +9,10 @@ import SignupPage from './component/signup';
 import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
-import Badge from './component/badges';
+import Badge from './component/badges.jsx';
 import Pointer from "./component/point";
 import MentorDashboard from './component/mentordash';
 import UserProfile from './component/UserProfile';
-
-
 // --- Mock Current User ---
 const currentUser = {
   id: "current_user_123",
@@ -106,14 +104,13 @@ export default function App() {
           element={<Badge currentUser={currentUser} />}
         />
         <Route
-          path="/point"
+          path="/Point"
           element={<Pointer />}
         />
         <Route
           path="/user-profile"
           element={<UserProfile />}
         />
-        
       </Routes>
     </Router>
   );

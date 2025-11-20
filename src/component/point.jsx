@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collection, query, onSnapshot, doc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
 
-
-// --- FIREBASE AND UTILITY SETUP ---
-const firebaseConfig = { apiKey: "AIzaSyArwJ46ilZz3PB4hknxPz7XGEw2zF5KUXI", authDomain: "gamify-station.firebaseapp.com", projectId: "gamify-station", storageBucket: "gamify-station.firebasestorage.app", messagingSenderId: "158401998275", appId: "1:158401998275:web:1f7d3cbbcae3ff726de176", measurementId: "G-6G1HQ8J64Z", };
+// --- GLOBAL VARIABLES (Mandatory) ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+
 
 
 // Enhanced profile image helper function
@@ -29,21 +29,28 @@ const generatePlaceholderUrl = (name = "", userId = null) => {
     }
 
     // Generate a hash based on the name for a consistent background color
+
+// Helper function to generate a stable, colorful placeholder URL for a user name/ID
+const generatePlaceholderUrl = (name = "") => {
+
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // Generate a color from the hash
+    // Generate a unique hex color from the hash
     const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
     const hexColor = "000000".substring(0, 6 - color.length) + color;
+    
+    // Use initials for display text, or just a generic "U" if name is short/empty
+    let initials = name.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
+    if (initials.length === 0) {
+        initials = 'U';
+    } else if (initials.length > 2) {
+         initials = initials.substring(0, 2);
+    }
 
-    // Get the first two initials of the name
-    const initials = name.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
-
-    // Placeholder image URL
     return `https://placehold.co/40x40/${hexColor}/ffffff?text=${initials}&font=arial`;
 };
-
 
 // Custom Hook for Firebase Initialization and Authentication
 const useFirebase = () => {
@@ -54,6 +61,12 @@ const useFirebase = () => {
 
     useEffect(() => {
         try {
+            const defaultFirebaseConfig = {
+                apiKey: "AIzaSyArwJ46ilZz3PB4hknxPz7XGEw2zF5KUXI", authDomain: "gamify-station.firebaseapp.com", projectId: "gamify-station", storageBucket: "gamify-station.firebasestorage.app", messagingSenderId: "158401998275", appId: "1:158401998275:web:1f7d3cbbcae3ff726de176", measurementId: "G-6G1HQ8J64Z",
+            };
+            
+            const firebaseConfig = firebaseConfigStr ? JSON.parse(firebaseConfigStr) : defaultFirebaseConfig;
+
             const app = initializeApp(firebaseConfig);
             const firestore = getFirestore(app);
             const authentication = getAuth(app);
@@ -69,8 +82,7 @@ const useFirebase = () => {
                         await signInAnonymously(authentication);
                     }
                 } catch (error) {
-                    console.error("Firebase Auth Error:", error);
-                    // Fallback to anonymous sign-in if custom token fails
+                    console.error("Firebase Auth Error: Failed to sign in with custom token, falling back to anonymous.", error);
                     await signInAnonymously(authentication);
                 }
             };
@@ -79,7 +91,6 @@ const useFirebase = () => {
                 if (user) {
                     setUserId(user.uid);
                 } else {
-                    // Sign in if not already authenticated
                     authenticate();
                 }
                 setIsAuthReady(true);
@@ -94,6 +105,7 @@ const useFirebase = () => {
     return { db, auth, userId, isAuthReady };
 };
 
+// Custom Hook for fetching and tracking students
 const useStudents = (db, isAuthReady) => {
     const [students, setStudents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -130,6 +142,7 @@ const useStudents = (db, isAuthReady) => {
 
     return { students, setStudents, isLoading };
 };
+
 
 // Compact Admin Edit Icon Component
 const AdminEditIcon = ({ setNotification }) => {
@@ -398,13 +411,14 @@ const AdminProfileEdit = ({ setNotification }) => {
     );
 };
 
+
 // Custom Notification Toast Component
 const NotificationToast = ({ notification, setNotification }) => {
     useEffect(() => {
         if (notification) {
             const timer = setTimeout(() => {
                 setNotification(null);
-            }, 3000); // Notification disappears after 3 seconds
+            }, 3000);
             return () => clearTimeout(timer);
         }
     }, [notification, setNotification]);
@@ -425,9 +439,8 @@ const NotificationToast = ({ notification, setNotification }) => {
     );
 };
 
-// --- NEW COMPONENT FOR ENHANCED WATER DROP ANIMATION ---
+// Water Drop Animation Component
 const WaterDropEffect = ({ effectKey }) => {
-    // Styling for multiple layers of ripple (for a dramatic, attractive effect)
     const layers = useMemo(() => ([
         { size: 'w-4 h-4', delay: 0, duration: 'duration-700', color: 'bg-indigo-300' },
         { size: 'w-8 h-8', delay: 100, duration: 'duration-900', color: 'bg-purple-400' },
@@ -438,18 +451,15 @@ const WaterDropEffect = ({ effectKey }) => {
         layers.forEach((layer, index) => {
             const el = document.getElementById(`water-drop-${effectKey}-${index}`);
             if (el) {
-                // Initial delay plus layer specific delay
                 const initialDelay = 50 + layer.delay;
 
                 const timeout1 = setTimeout(() => {
                     el.style.opacity = 1;
-                    // Scale up aggressively for an attractive "pop"
                     el.style.transform = 'scale(40)';
 
-                    // Fade out quickly after scaling starts
                     const timeout2 = setTimeout(() => {
                         el.style.opacity = 0;
-                        el.style.transform = 'scale(50)'; // Continue scaling during fade
+                        el.style.transform = 'scale(50)';
                     }, 300);
 
                     return () => clearTimeout(timeout2);
@@ -462,9 +472,7 @@ const WaterDropEffect = ({ effectKey }) => {
 
 
     return (
-        <div
-            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none" // Increased Z-index
-        >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
             {layers.map((layer, index) => (
                 <div
                     key={index}
@@ -473,10 +481,9 @@ const WaterDropEffect = ({ effectKey }) => {
                     style={{
                         opacity: 0,
                         transform: 'scale(0)',
-                        // Using translateZ(0) to force hardware acceleration for smooth animation
                         willChange: 'transform, opacity',
-                        boxShadow: '0 0 10px 5px rgba(120, 80, 200, 0.5)', // Added a subtle shadow/glow
-                        zIndex: index // Ensure inner layers are on top of outer ones initially
+                        boxShadow: '0 0 10px 5px rgba(120, 80, 200, 0.5)',
+                        zIndex: index
                     }}
                 />
             ))}
@@ -485,9 +492,8 @@ const WaterDropEffect = ({ effectKey }) => {
 };
 
 
-// --- COMPONENTS ---
-
-const PointGiver = ({ db, student, adminId, onClose, setNotification, students, setStudents }) => {
+// Point Giver Sub-Component
+const PointGiver = ({ db, student, adminId, onClose, setNotification, setStudents }) => {
     const [points, setPoints] = useState(0);
     const [reason, setReason] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -551,7 +557,8 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
         }
 
         try {
-            const studentRef = doc(db, 'users', student.id);
+            // MANDATORY: Use public path for shared data/leaderboard
+            const studentRef = doc(db, `artifacts/${appId}/public/data/students`, student.id);
             const studentSnap = await getDoc(studentRef);
 
             const currentData = studentSnap.exists() ? studentSnap.data() : { totalPoints: 0, transactions: [] };
@@ -564,23 +571,28 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
                 adminId: adminId || 'unknown_admin',
             };
 
-            // Firestore update - Save to users collection for leaderboard
+            // Firestore update
             await setDoc(studentRef, {
                 name: student.name,
-                email: student.email,
-                points: newTotalPoints,  // Changed from totalPoints to points
-                totalPoints: newTotalPoints,  // Keep both for compatibility
-                lastReason: newReason,
+                email: student.email || null, // Keep existing fields
+                profileImageUrl: student.profileImageUrl || null, // Preserve image URL
+                totalPoints: newTotalPoints,
                 lastUpdated: Date.now(),
                 transactions: [...(currentData.transactions || []), newTransaction],
             }, { merge: true });
 
-            // Instant local UI update
-            setStudents(prev => prev.map(s =>
-                s.id === student.id
-                    ? { ...s, points: newTotalPoints, totalPoints: newTotalPoints, transactions: [...s.transactions, newTransaction] }
-                    : s
-            ));
+            // Instant local UI update (important for smooth feel)
+            setStudents(prev => {
+                const updatedList = prev.map(s =>
+                    s.id === student.id
+                        ? { ...s, totalPoints: newTotalPoints, transactions: [...(s.transactions || []), newTransaction] }
+                        : s
+                );
+                // Re-sort the list immediately
+                updatedList.sort((a, b) => b.totalPoints - a.totalPoints);
+                return updatedList;
+            });
+
 
             setNotification({ message: `${pointsToAdd} points assigned to ${student.name}!`, type: 'success' });
             setPoints(0);
@@ -588,15 +600,15 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
             onClose(); // close panel
         } catch (error) {
             console.error("Error giving points:", error);
-            setNotification({ message: "Failed to assign points.", type: 'error' });
+            setNotification({ message: "Failed to assign points. Check console for details.", type: 'error' });
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleButtonClick = (option) => {
-        setReason(option.label);
-        givePoints(option.value, option.label);
+        setReason(option.label.split('(')[0].trim()); // Clean up reason for display
+        givePoints(option.value, option.label.split('(')[0].trim());
     };
 
     return (
@@ -691,9 +703,100 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, students, 
     );
 };
 
+// --- UPDATED COMPONENT: ImageSetter with setStudents prop ---
+const ImageSetter = ({ db, student, setNotification, setStudents }) => {
+    // Initialize with existing URL or empty string
+    const [imageUrl, setImageUrl] = useState(student.profileImageUrl || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const setProfileImage = async () => {
+        if (!db || !student || isSaving) return;
+        
+        const urlToSave = imageUrl.trim();
+
+        if (urlToSave.length > 0 && !urlToSave.startsWith('http')) {
+            setNotification({ message: "Please enter a valid image URL starting with http or https.", type: 'error' });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const studentRef = doc(db, `artifacts/${appId}/public/data/students`, student.id);
+            
+            const newImageUrl = urlToSave.length > 0 ? urlToSave : null;
+
+            // Update Firestore with the new image URL
+            await setDoc(studentRef, {
+                profileImageUrl: newImageUrl
+            }, { merge: true });
+            
+            // INSTANT LOCAL UI UPDATE: Update the main list so the card image refreshes immediately
+             setStudents(prev => {
+                const updatedList = prev.map(s =>
+                    s.id === student.id
+                        ? { ...s, profileImageUrl: newImageUrl }
+                        : s
+                );
+                // Important: re-sort to maintain order if the structure of students state requires it
+                updatedList.sort((a, b) => b.totalPoints - a.totalPoints);
+                return updatedList;
+            });
+
+
+            setNotification({ message: urlToSave ? "Profile image URL saved and updated!" : "Profile image cleared!", type: 'success' });
+        } catch (error) {
+            console.error("Error setting image URL:", error);
+            setNotification({ message: "Failed to set image URL. Check console.", type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="p-4 bg-purple-50/70 rounded-2xl shadow-inner border border-gray-100/50 mt-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-3 border-b border-purple-200 pb-2">
+                Set Profile Image
+            </h3>
+            <div className="flex space-x-2">
+                <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Paste Image URL (e.g., https://example.com/pic.jpg)"
+                    className="flex-1 p-3 border-2 border-purple-200 rounded-xl focus:ring-purple-500 focus:border-purple-500"
+                />
+                <button
+                    onClick={setProfileImage}
+                    disabled={isSaving}
+                    className="py-3 px-6 bg-purple-600 text-white font-bold rounded-xl transition duration-200 hover:bg-purple-700 hover:shadow-lg disabled:opacity-50"
+                >
+                    {isSaving ? 'Saving...' : 'Save'}
+                </button>
+            </div>
+            {imageUrl && (
+                <div className="mt-3 text-center">
+                    <p className="text-sm text-gray-600 mb-2">Preview:</p>
+                    {/* Fallback added here too for robustness */}
+                    <img 
+                        src={imageUrl} 
+                        alt="Profile Preview" 
+                        className="w-16 h-16 object-cover rounded-full mx-auto ring-2 ring-purple-400 shadow-md"
+                        // Fallback to placeholder if the provided URL is invalid
+                        onError={(e) => { e.target.onerror = null; e.target.src = generatePlaceholderUrl('Error'); }}
+                    />
+                </div>
+            )}
+        </div>
+    );
+};
+// --- END UPDATED COMPONENT: ImageSetter ---
+
+
 // Student Detail Panel
-const StudentDetail = ({ student, onClose, db, adminId, setNotification, students, setStudents }) => {
-    const pointGlow = student.totalPoints >= 50 ? 'text-yellow-500 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]' : '';
+const StudentDetail = ({ student, onClose, db, adminId, setNotification, setStudents }) => {
+    const isNegative = student.totalPoints < 0;
+    const pointColorClass = isNegative ? 'text-red-500' : 'text-green-600';
+    const pointGlow = !isNegative && student.totalPoints >= 50 ? 'text-yellow-500 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]' : '';
 
     // Point tier styling
     let pointColorClass = 'text-violet-600';
@@ -907,25 +1010,23 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
             </div>
+            
         </div>
     );
 };
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
-    const { db, auth, userId, isAuthReady } = useFirebase();
-    const { students, setStudents, isLoading } = useStudents(db, isAuthReady, userId);
+    const { db, userId, isAuthReady } = useFirebase();
+    const [notification, setNotification] = useState(null); // Define notification state here
+    
+    // Pass setNotification to useStudents
+    const { students, setStudents, isLoading } = useStudents(db, isAuthReady, setNotification);
 
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [animationStudent, setAnimationStudent] = useState(null);
     const [effectKey, setEffectKey] = useState(0);
-
-    const [notification, setNotification] = useState(null);
-
-    const isAdmin = true;
-
-
 
     // Handle click to start the sequenced animation
     const handleStudentClick = useCallback((student) => {
@@ -940,6 +1041,7 @@ const App = () => {
         setAnimationStudent(student);
         setEffectKey(prev => prev + 1);
 
+        // Sequence animation: 500ms for drop, then open panel, then disable animation
         const dropTimeout = setTimeout(() => {
             setSelectedStudent(student);
             const openTimeout = setTimeout(() => {
@@ -952,26 +1054,35 @@ const App = () => {
         return () => clearTimeout(dropTimeout);
     }, [isAnimating, selectedStudent]);
 
+    // Memoize the detail panel to avoid unnecessary re-renders
     const DetailPanel = useMemo(() => {
         if (!selectedStudent) return null;
+        // Find the currently updated version of the student from the main list
+        const updatedStudent = students.find(s => s.id === selectedStudent.id) || selectedStudent;
         return (
             <StudentDetail
-                student={selectedStudent}
+                student={updatedStudent}
                 onClose={() => setSelectedStudent(null)}
                 db={db}
                 adminId={userId}
                 setNotification={setNotification}
-                students={students}
-                setStudents={setStudents}
+                setStudents={setStudents} // Pass setStudents down
             />
         );
-    }, [selectedStudent, db, userId, setNotification, students, setStudents]);
+    }, [selectedStudent, students, db, userId, setNotification, setStudents]);
+
+    // Generate Admin's profile details
+    const adminPlaceholderUrl = useMemo(() => userId ? generatePlaceholderUrl(userId) : 'https://placehold.co/40x40/ccc/fff?text=?', [userId]);
 
     if (!isAuthReady || isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-                <div className="text-2xl font-black text-indigo-600 animate-bounce">
-                    Student Points Tracker Loading...
+            <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+                 <svg className="animate-spin h-8 w-8 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <div className="text-xl font-black text-indigo-600">
+                    Loading Leaderboard...
                 </div>
             </div>
         );
@@ -981,6 +1092,9 @@ const App = () => {
         @keyframes float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-3px); }
+        }
+        .animate-\[float_4s_ease-in-out_infinite\] {
+            animation: float 4s ease-in-out infinite;
         }
     `;
 
@@ -1034,6 +1148,8 @@ const App = () => {
                         </div>
                     </div>
                 </div>
+                {/* ------------------------------------------- */}
+
             </header>
 
             <div className={`relative z-10 transition-all duration-300 ${selectedStudent ? 'opacity-30 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
