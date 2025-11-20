@@ -13,18 +13,190 @@ import {
   Trash2,
   Bell,
   CheckCircle,
+  X,
+  Mail,
+  MapPin,
+  Calendar,
 } from "lucide-react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
+
+// --- Student Profile Modal Component ---
+const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) => {
+  const [studentData, setStudentData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && studentName) {
+      fetchStudentData();
+    }
+  }, [isOpen, studentName]);
+
+  const fetchStudentData = async () => {
+    setLoading(true);
+    try {
+      // Search for student by name
+      const usersQuery = query(
+        collection(db, "users"), 
+        where("name", "==", studentName)
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        setStudentData({ id: doc.id, ...doc.data() });
+      } else {
+        setStudentData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+      setStudentData(null);
+    }
+    setLoading(false);
+  };
+
+  const getProfileImage = (user) => {
+    // If user has profilePic in database, use it
+    if (user && user.profilePic) {
+      return user.profilePic;
+    }
+    
+    // For current user, check localStorage as fallback
+    const currentUserData = JSON.parse(localStorage.getItem("currentUser")) || {};
+    if (user && user.id === currentUserData.id) {
+      const localProfilePic = localStorage.getItem("profilePic");
+      if (localProfilePic) {
+        return localProfilePic;
+      }
+    }
+    
+    return "https://via.placeholder.com/150";
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {/* Header with Close Button */}
+        <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white rounded-t-3xl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">Student Profile</h2>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading Student Profile...</p>
+            </div>
+          ) : studentData ? (
+            <>
+              {/* Profile Header */}
+              <div className="text-center mb-6">
+                <div className="relative inline-block">
+                  <img 
+                    src={getProfileImage(studentData)} 
+                    alt="Profile" 
+                    className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg mx-auto"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <Trophy className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mt-4">
+                  {studentData.name || "Unknown Student"}
+                </h3>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${
+                  studentData.role === 'Council' ? 'bg-red-200 text-red-800' :
+                  studentData.role === 'Mentor' ? 'bg-green-200 text-green-800' : 
+                  'bg-blue-200 text-blue-800'
+                }`}>
+                  {studentData.role || 'Student'}
+                </span>
+              </div>
+
+              {/* Points Display */}
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 mb-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-orange-600">
+                    {studentData.points || 0}
+                  </div>
+                  <div className="text-sm text-orange-700">Total Points</div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-3">
+                {studentData.email && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Mail className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-800 text-sm">Email</div>
+                      <div className="text-gray-600 text-sm">{studentData.email}</div>
+                    </div>
+                  </div>
+                )}
+
+                {studentData.department && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Users className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-800 text-sm">Department</div>
+                      <div className="text-gray-600 text-sm">{studentData.department}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Action to view full profile */}
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    localStorage.setItem("selectedUserProfile", JSON.stringify(studentData));
+                    window.open('/user-profile', '_blank');
+                  }}
+                  className="w-full bg-blue-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-blue-600 transition-colors"
+                >
+                  View Full Profile
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600">Student profile not found</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // --- Task Card for Mentor with Volunteers & Approve/Reject ---
-const TaskCard = ({ task, onRemoveTask, onApprove, onReject }) => {
+const TaskCard = ({ task, onRemoveTask, onApprove, onReject, onStudentClick }) => {
   const progressPercent = Math.min(
     100,
     (task.volunteersList.length / task.required) * 100
   );
   const isReady = task.status === "Ready";
+
+  // Show only required number of volunteers
+  const displayedVolunteers = task.volunteersList.slice(0, task.required);
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
@@ -77,9 +249,21 @@ const TaskCard = ({ task, onRemoveTask, onApprove, onReject }) => {
         {/* Volunteers List */}
         <div className="text-xs text-gray-500 mb-5">
           <span className="font-bold text-gray-700">Volunteers:</span>{" "}
-          {task.volunteersList.length > 0
-            ? task.volunteersList.join(", ")
-            : "None"}
+          {displayedVolunteers.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {displayedVolunteers.map((volunteer, index) => (
+                <button
+                  key={index}
+                  onClick={() => onStudentClick(volunteer)}
+                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  {volunteer}
+                </button>
+              ))}
+            </div>
+          ) : (
+            "None"
+          )}
         </div>
 
         {/* Approve / Reject buttons for Mentor */}
@@ -110,6 +294,8 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   const [notifications, setNotifications] = useState([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [blinkBell, setBlinkBell] = useState(false);
+  const [studentModalOpen, setStudentModalOpen] = useState(false);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
   const navigate = useNavigate();
 
   const storedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -210,6 +396,16 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     );
     setTasks(updatedTasks);
     localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+  };
+
+  const handleStudentClick = (studentName) => {
+    setSelectedStudentName(studentName);
+    setStudentModalOpen(true);
+  };
+
+  const handleCloseStudentModal = () => {
+    setStudentModalOpen(false);
+    setSelectedStudentName("");
   };
 
   const handleProfileChange = (e) => {
@@ -396,6 +592,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
                 onRemoveTask={handleRemoveTask}
                 onApprove={handleApprove}
                 onReject={handleReject}
+                onStudentClick={handleStudentClick}
               />
             ))
           ) : (
@@ -405,6 +602,13 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
           )}
         </div>
       </div>
+
+      {/* Student Profile Modal */}
+      <StudentProfileModal
+        studentName={selectedStudentName}
+        isOpen={studentModalOpen}
+        onClose={handleCloseStudentModal}
+      />
     </div>
   );
 }

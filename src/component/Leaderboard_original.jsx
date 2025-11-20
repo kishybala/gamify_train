@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell } from 'lucide-react';
@@ -21,6 +21,16 @@ export default function Leaderboard() {
   const [timePeriod, setTimePeriod] = useState("monthly");
 
   const navigate = useNavigate();
+
+  // Helper function to get profile image with fallback logic
+  const getProfileImage = (user) => {
+    // For current user, prioritize localStorage
+    if (user.id === currentUserData.id) {
+      return localStorage.getItem("profilePic") || user.profilePic || "https://via.placeholder.com/100";
+    }
+    // For other users, use their database profilePic
+    return user.profilePic || "https://via.placeholder.com/100";
+  };
 
   // Fetch users from Firestore
   useEffect(() => {
@@ -75,9 +85,21 @@ export default function Leaderboard() {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         setProfilePic(reader.result);
         localStorage.setItem("profilePic", reader.result);
+        
+        // Also save to Firestore
+        if (currentUserData.id) {
+          try {
+            const userRef = doc(db, "users", currentUserData.id);
+            await updateDoc(userRef, {
+              profilePic: reader.result
+            });
+          } catch (error) {
+            console.error("Error updating profile picture in database:", error);
+          }
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -247,7 +269,7 @@ export default function Leaderboard() {
                   
                   <div className="bg-white rounded-3xl p-6 shadow-xl group-hover:shadow-2xl transition-all duration-300 border border-gray-200 max-w-xs text-center">
                     <img 
-                      src={topThreeUsers[1].profilePic || "https://via.placeholder.com/80"} 
+                      src={getProfileImage(topThreeUsers[1])} 
                       alt="Profile" 
                       className="w-20 h-20 rounded-full object-cover mx-auto mb-4 border-3 border-gray-300 shadow-md group-hover:scale-110 transition-transform duration-300"
                     />
@@ -273,7 +295,7 @@ export default function Leaderboard() {
                 
                 <div className="bg-white rounded-3xl p-8 shadow-2xl group-hover:shadow-3xl transition-all duration-300 border-2 border-yellow-300 max-w-sm text-center">
                   <img 
-                    src={topThreeUsers[0].profilePic || "https://via.placeholder.com/100"} 
+                    src={getProfileImage(topThreeUsers[0])} 
                     alt="Profile" 
                     className="w-24 h-24 rounded-full object-cover mx-auto mb-4 border-4 border-yellow-400 shadow-xl group-hover:scale-125 transition-transform duration-300"
                   />
@@ -298,9 +320,9 @@ export default function Leaderboard() {
                   
                   <div className="bg-white rounded-3xl p-5 shadow-xl group-hover:shadow-2xl transition-all duration-300 border border-orange-200 max-w-xs text-center">
                     <img 
-                      src={topThreeUsers[2].profilePic || "https://via.placeholder.com/70"} 
+                      src={getProfileImage(topThreeUsers[2])} 
                       alt="Profile" 
-                      className="w-16 h-16 rounded-full object-cover mx-auto mb-3 border-3 border-orange-300 shadow-md group-hover:scale-110 transition-transform duration-300"
+                      className="w-18 h-18 rounded-full object-cover mx-auto mb-3 border-2 border-orange-300 shadow-sm group-hover:scale-105 transition-transform duration-300"
                     />
                     <h3 className="text-base font-bold text-gray-800 mb-2">{topThreeUsers[2].name?.split(' ')[0] || topThreeUsers[2].email?.split('@')[0]}</h3>
                     <p className="text-xs text-gray-600 mb-2">{topThreeUsers[2].role} | {topThreeUsers[2].department}</p>
@@ -350,7 +372,7 @@ export default function Leaderboard() {
                     
                     <div className="flex justify-center">
                       <img 
-                        src={user.profilePic || "https://via.placeholder.com/40"} 
+                        src={getProfileImage(user)} 
                         alt="Profile" 
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-sm hover:scale-110 transition-transform"
                       />
