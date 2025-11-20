@@ -214,7 +214,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   };
 
   const handleRemoveTask = (taskId) => {
-    if (currentUserData.role === "Council" || currentUserData.role === "Mentor") {
+    if ( currentUserData.role === "Mentor") {
       const updatedTasks = tasks.filter(task => task.id !== taskId);
       setTasks(updatedTasks);
       localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
