@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Trophy,
+  Award,
+  LogOut,
+  Users,
+  Home,
+  User,
+  Zap,
+  Menu,
+  Bell,
+} from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken, signInAnonymously } from 'firebase/auth';
-import { getFirestore, collection, query, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getAuth, signInWithCustomToken, signInAnonymously, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, query, onSnapshot, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 // --- GLOBAL VARIABLES (Mandatory) ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -10,7 +22,239 @@ const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_
 
 
 
-// Helper function to generate a stable, colorful placeholder URL for a user name/ID
+// Mentor Dashboard Header Component
+const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  
+  // Helper to produce a display name: prefer `name`, then derive from email local-part
+  const getDisplayName = (user) => {
+    if (!user) return 'User';
+    if (user.name && String(user.name).trim()) return user.name;
+    const email = user.email || '';
+    const local = email.split('@')[0] || '';
+    const clean = local.replace(/[0-9._-]/g, '');
+    if (clean) return clean.charAt(0).toUpperCase() + clean.slice(1);
+    return 'User';
+  };
+
+  return (
+    <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center transform transition-all hover:shadow-2xl duration-300">
+      <div className="flex items-center space-x-4">
+        <div className="relative w-30 h-30">
+          <img
+            src={profilePic || "https://via.placeholder.com/90"}
+            alt="Profile"
+            className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
+          />
+          <label
+            htmlFor="profileUpload"
+            className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs"
+          >
+            ✏️
+          </label>
+          <input
+            type="file"
+            id="profileUpload"
+            accept="image/*"
+            onChange={onProfileChange}
+            className="hidden"
+          />
+        </div>
+        <div>
+          <div className="text-xl font-bold text-gray-800">
+            Welcome, <span className="text-blue-600">{getDisplayName(currentUser)}</span>!
+          </div>
+          <span className="text-sm text-gray-500">({currentUser?.role || 'Mentor'})</span>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        {/* Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center text-gray-600 hover:text-blue-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+              <Link
+                to="/mentor-dashboard"
+                className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 rounded-t-xl font-semibold"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Home className="w-5 h-5 mr-2" /> Dashboard
+              </Link>
+              <Link
+                to="/AddTask"
+                className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold"
+                onClick={() => setMenuOpen(false)}
+              >
+                <User className="w-5 h-5 mr-2" /> Add Task
+              </Link>
+              <Link
+                to="/Point"
+                className="flex items-center px-4 py-3 hover:bg-yellow-50 hover:text-yellow-600 font-semibold bg-yellow-50 text-yellow-600"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Zap className="w-5 h-5 mr-2" /> Give Points
+              </Link>
+              <Link
+                to="/badges"
+                className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Award className="w-5 h-5 mr-2" /> Badges
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Trophy className="w-5 h-5 mr-2" /> Leaderboard
+              </Link>
+              <button
+                onClick={onLogout}
+                className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 hover:text-red-600 font-semibold rounded-b-xl"
+              >
+                <LogOut className="w-5 h-5 mr-2" /> Logout
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setBellOpen(!bellOpen)}
+            className="flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+          >
+            <Bell className="w-6 h-6" />
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          {bellOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+              <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
+              <div className="max-h-60 overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications
+                    .slice()
+                    .reverse()
+                    .map((n, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 text-sm border-b last:border-b-0"
+                      >
+                        {n.message}
+                      </div>
+                    ))
+                ) : (
+                  <p className="px-4 py-2 text-gray-500">No notifications</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+// Custom Hook for Firebase Authentication and User Management
+const useAuthUser = () => {
+  const [currentUser, setCurrentUser] = useState(
+    JSON.parse(localStorage.getItem("currentUser")) || { role: "Mentor", name: "Mentor", id: null }
+  );
+  const [profilePic, setProfilePic] = useState(
+    localStorage.getItem("profilePic") || null
+  );
+  const navigate = useNavigate();
+
+  // ✅ Fetch real user data from Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(getAuth(), async (user) => {
+      if (user) {
+        try {
+          const docRef = doc(getFirestore(), "users", user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            // Helper function to extract first name from email
+            const extractFirstName = (displayName, email) => {
+              if (displayName && displayName.trim()) {
+                return displayName.split(' ')[0];
+              }
+              if (email) {
+                const emailPart = email.split('@')[0];
+                const cleanName = emailPart.replace(/[0-9._-]/g, '');
+                return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+              }
+              return "User";
+            };
+            
+            const firstName = userData.name || extractFirstName(user.displayName, user.email);
+            const updatedUser = {
+              id: user.uid,
+              name: firstName,
+              email: user.email,
+              role: userData.role || "Mentor",
+            };
+            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+            setCurrentUser(updatedUser);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleProfileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        setProfilePic(reader.result);
+        localStorage.setItem("profilePic", reader.result);
+        
+        // Also save to Firestore
+        if (currentUser.id) {
+          try {
+            const userRef = doc(getFirestore(), "users", currentUser.id);
+            await updateDoc(userRef, {
+              profilePic: reader.result
+            });
+          } catch (error) {
+            console.error("Error updating profile picture in database:", error);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(getAuth());
+      localStorage.removeItem("currentUser");
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Failed to logout.");
+    }
+  };
+
+  return { currentUser, profilePic, handleProfileChange, handleLogout };
+};
 const generatePlaceholderUrl = (name = "", userId = null) => {
     // First check if user has uploaded profile image in localStorage for this userId
     if (userId) {
@@ -1035,6 +1279,7 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
 // --- MAIN APP COMPONENT ---
 const App = () => {
     const { db, userId, isAuthReady } = useFirebase();
+    const { currentUser, profilePic, handleProfileChange, handleLogout } = useAuthUser();
     const [notification, setNotification] = useState(null); // Define notification state here
     
     // Pass setNotification to useStudents
@@ -1087,7 +1332,7 @@ const App = () => {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <div className="text-xl font-black text-indigo-600">
-                    Loading Leaderboard...
+                    Loading Point System...
                 </div>
             </div>
         );
@@ -1104,51 +1349,24 @@ const App = () => {
     `;
 
     return (
-        <div className="min-h-screen font-['Inter'] relative overflow-hidden p-6 sm:p-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <div className="min-h-screen font-inter bg-gray-50">
             <style>{customStyles}</style>
-            <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-br from-blue-200/30 to-indigo-300/30 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-tl from-purple-200/30 to-pink-300/30 rounded-full blur-3xl"></div>
-            <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-gradient-to-r from-emerald-200/20 to-teal-300/20 rounded-full blur-2xl"></div>
+            
+            {/* Mentor Dashboard Header */}
+            <MentorHeader 
+                currentUser={currentUser}
+                profilePic={profilePic}
+                onProfileChange={handleProfileChange}
+                onLogout={handleLogout}
+            />
 
             <NotificationToast notification={notification} setNotification={setNotification} />
 
             {animationStudent && <WaterDropEffect effectKey={effectKey} />}
 
-            <header className="mb-8 relative z-20">
-                <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border border-white/20">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-6">
-                            <div className="relative">
-                                <img 
-                                    src={localStorage.getItem("profilePic") || "https://ui-avatars.com/api/?name=A&background=666666&color=ffffff&size=80"} 
-                                    alt="Mentor Profile" 
-                                    className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                                />
-                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800">
-                                    Welcome, <span className="text-blue-600">{JSON.parse(localStorage.getItem("currentUser") || '{}').name || "Prerna"}!</span>
-                                </h1>
-                                <p className="text-gray-600 font-medium">(Mentor)</p>
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <AdminEditIcon setNotification={setNotification} />
-                        </div>
-                    </div>
-                </div>
-                {/* ------------------------------------------- */}
-
-            </header>
-
             <div className={`relative z-10 transition-all duration-300 ${selectedStudent ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
                 <div className="opacity-100 pointer-events-auto">
-                    <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/20">
+                    <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-3xl font-bold text-gray-800 flex items-center">
                                 <span className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg mr-3">
@@ -1223,7 +1441,7 @@ const App = () => {
                                 />
                             </div>
                         );
-                    })()} 
+                    })()}
                 </div>
             )}
         </div>
