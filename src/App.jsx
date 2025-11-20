@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { db } from "./firebase";
 
 import Home from "./component/home";
 import LoginPage from "./component/login";
@@ -19,23 +21,50 @@ const currentUser = {
 };
 
 export default function App() {
-  const [tasks, setTasks] = useState(() => {
-    try {
-      const saved = localStorage.getItem('dashboardTasks');
-      if (!saved) return [];
-      const parsed = JSON.parse(saved);
-      const normalized = parsed.map(t => ({
-        ...t,
-        id: t.id || (`task_${(t.createdAt ? new Date(t.createdAt).getTime() : Date.now())}_${Math.random().toString(36).slice(2,8)}`)
-      }));
-      // Persist normalized back
-      localStorage.setItem('dashboardTasks', JSON.stringify(normalized));
-      return normalized;
-    } catch (e) {
-      console.warn('Failed to load dashboardTasks from localStorage', e);
-      return [];
-    }
-  }); // All tasks stored here
+  // Initialize tasks state
+  const [tasks, setTasks] = useState([]);
+
+  // Real-time task fetching from Firestore
+  useEffect(() => {
+    const fetchTasks = () => {
+      try {
+        const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const tasksList = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log("Global real-time tasks fetched:", tasksList.length, "tasks");
+          setTasks(tasksList);
+          
+          // Also save to localStorage as backup
+          localStorage.setItem("dashboardTasks", JSON.stringify(tasksList));
+        });
+        
+        return unsubscribe;
+      } catch (error) {
+        console.error("Error setting up global real-time tasks listener:", error);
+        // Fallback to localStorage
+        const savedTasks = localStorage.getItem("dashboardTasks");
+        if (savedTasks) {
+          try {
+            const parsed = JSON.parse(savedTasks);
+            setTasks(parsed);
+          } catch (e) {
+            console.warn('Failed to parse dashboardTasks from localStorage', e);
+          }
+        }
+      }
+    };
+
+    const unsubscribe = fetchTasks();
+
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, []);
 
   return (
     <Router>

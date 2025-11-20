@@ -8,6 +8,19 @@ export default function LeaderboardSimple() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserData] = useState(
+    JSON.parse(localStorage.getItem("currentUser")) || { role: "Guest", id: null, name: "Guest" }
+  );
+
+  // Helper function to get profile image with fallback logic
+  const getProfileImage = (user) => {
+    // For current user, prioritize localStorage
+    if (user.id === currentUserData.id) {
+      return localStorage.getItem("profilePic") || user.profilePic || "https://via.placeholder.com/40";
+    }
+    // For other users, use their database profilePic
+    return user.profilePic || "https://via.placeholder.com/40";
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -65,6 +78,11 @@ export default function LeaderboardSimple() {
                     <span className="text-2xl font-bold text-gray-600">
                       #{index + 1}
                     </span>
+                    <img 
+                      src={getProfileImage(user)} 
+                      alt="Profile" 
+                      className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 shadow-sm"
+                    />
                     <div>
                       <h3 className="font-semibold text-gray-800">
                         {user.name || user.email || 'Unknown User'}
