@@ -10,9 +10,9 @@ const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_
 
 
 
-// Enhanced profile image helper function
+// Helper function to generate a stable, colorful placeholder URL for a user name/ID
 const generatePlaceholderUrl = (name = "", userId = null) => {
-    // First check if user has uploaded profile image in localStorage
+    // First check if user has uploaded profile image in localStorage for this userId
     if (userId) {
         const userProfileKey = `profilePic_${userId}`;
         const savedProfilePic = localStorage.getItem(userProfileKey);
@@ -20,7 +20,7 @@ const generatePlaceholderUrl = (name = "", userId = null) => {
             return savedProfilePic;
         }
     }
-    
+
     // Check for general profile picture by name
     const generalProfileKey = `profile_${name}`;
     const generalProfilePic = localStorage.getItem(generalProfileKey);
@@ -28,26 +28,16 @@ const generatePlaceholderUrl = (name = "", userId = null) => {
         return generalProfilePic;
     }
 
-    // Generate a hash based on the name for a consistent background color
-
-// Helper function to generate a stable, colorful placeholder URL for a user name/ID
-const generatePlaceholderUrl = (name = "") => {
-
+    // Fallback: generate an initials-based placeholder with a stable color
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // Generate a unique hex color from the hash
     const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
     const hexColor = "000000".substring(0, 6 - color.length) + color;
-    
-    // Use initials for display text, or just a generic "U" if name is short/empty
+
     let initials = name.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
-    if (initials.length === 0) {
-        initials = 'U';
-    } else if (initials.length > 2) {
-         initials = initials.substring(0, 2);
-    }
+    if (initials.length === 0) initials = 'U';
 
     return `https://placehold.co/40x40/${hexColor}/ffffff?text=${initials}&font=arial`;
 };
@@ -794,10 +784,6 @@ const ImageSetter = ({ db, student, setNotification, setStudents }) => {
 
 // Student Detail Panel
 const StudentDetail = ({ student, onClose, db, adminId, setNotification, setStudents }) => {
-    const isNegative = student.totalPoints < 0;
-    const pointColorClass = isNegative ? 'text-red-500' : 'text-green-600';
-    const pointGlow = !isNegative && student.totalPoints >= 50 ? 'text-yellow-500 drop-shadow-[0_0_8px_rgba(253,224,71,0.8)]' : '';
-
     // Point tier styling
     let pointColorClass = 'text-violet-600';
     let bgGradient = 'from-violet-50 to-purple-50';
