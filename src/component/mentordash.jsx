@@ -135,16 +135,29 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
   );
 };
 
-// --- Task Card for Mentor with Volunteers & Approve/Reject ---
-const TaskCard = ({ task, onRemoveTask, onApprove, onReject, onStudentClick }) => {
+// --- Task Card for Mentor with Volunteers ---
+const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
+  // Use memberNumber as required if task.required is not set
+  const requiredMembers = task.required || task.memberNumber || 1;
+  
+  // Ensure volunteersList exists (for older tasks compatibility)
+  const volunteers = task.volunteersList || [];
+  
+  // Debug log
+  console.log("TaskCard render:", {
+    taskTitle: task.title,
+    volunteersList: volunteers,
+    volunteersLength: volunteers.length,
+    requiredMembers
+  });
+  
   const progressPercent = Math.min(
     100,
-    (task.volunteersList.length / task.required) * 100
+    (volunteers.length / requiredMembers) * 100
   );
-  const isReady = task.status === "Ready";
 
   // Show only required number of volunteers
-  const displayedVolunteers = task.volunteersList.slice(0, task.required);
+  const displayedVolunteers = volunteers.slice(0, requiredMembers);
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
@@ -215,24 +228,6 @@ const TaskCard = ({ task, onRemoveTask, onApprove, onReject, onStudentClick }) =
             "None"
           )}
         </div>
-
-        {/* Approve / Reject buttons for Mentor */}
-        {isReady && (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => onApprove(task.id)}
-              className="flex-1 bg-green-500 text-white py-2 rounded-lg font-bold hover:bg-green-600 transition-all"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => onReject(task.id)}
-              className="flex-1 bg-red-500 text-white py-2 rounded-lg font-bold hover:bg-red-600 transition-all"
-            >
-              Reject
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -324,28 +319,26 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   }, [tasks, setTasks]);
 
   const handleRemoveTask = (taskId) => {
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    setTasks(updatedTasks);
-    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+    // Show confirmation dialog
+    const confirmDelete = window.confirm("Are you sure you want to delete this task? This will remove it from all students' dashboards as well.");
+    
+    if (confirmDelete) {
+      const updatedTasks = tasks.filter((task) => task.id !== taskId);
+      setTasks(updatedTasks);
+      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+      
+      // Trigger storage event to sync with other tabs/windows
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'dashboardTasks',
+        newValue: JSON.stringify(updatedTasks),
+        oldValue: JSON.stringify(tasks)
+      }));
+      
+      console.log("Task deleted:", taskId);
+    }
   };
 
-  // --- Approve / Reject functions ---
-  const handleApprove = (taskId) => {
-    const updatedTasks = tasks.map((t) =>
-      t.id === taskId ? { ...t, status: "Approved" } : t
-    );
-    setTasks(updatedTasks);
-    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-  };
-
-  const handleReject = (taskId) => {
-    const updatedTasks = tasks.map((t) =>
-      t.id === taskId ? { ...t, status: "Rejected" } : t
-    );
-    setTasks(updatedTasks);
-    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-  };
-
+  // --- Student Profile Modal handlers ---
   const handleStudentClick = (studentName) => {
     setSelectedStudentName(studentName);
     setStudentModalOpen(true);
@@ -553,8 +546,6 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
                 key={task.id}
                 task={task}
                 onRemoveTask={handleRemoveTask}
-                onApprove={handleApprove}
-                onReject={handleReject}
                 onStudentClick={handleStudentClick}
               />
             ))

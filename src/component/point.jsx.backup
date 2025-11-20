@@ -585,7 +585,6 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, setStudent
 
             // Instant local UI update (important for smooth feel)
             setStudents(prev => {
-                console.log('Updating student list after point assignment');
                 const updatedList = prev.map(s =>
                     s.id === student.id
                         ? { ...s, totalPoints: newTotalPoints, transactions: [...(s.transactions || []), newTransaction] }
@@ -593,14 +592,12 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, setStudent
                 );
                 // Re-sort the list immediately
                 updatedList.sort((a, b) => b.totalPoints - a.totalPoints);
-                console.log('Student list updated:', updatedList.find(s => s.id === student.id));
                 return updatedList;
             });
 
-            console.log('Points assigned successfully:', { pointsToAdd, newReason, newTotalPoints });
-            setNotification({ message: `${pointsToAdd > 0 ? '+' : ''}${pointsToAdd} points assigned to ${student.name}!`, type: 'success' });
+
+            setNotification({ message: `${pointsToAdd} points assigned to ${student.name}!`, type: 'success' });
             setPoints(0);
-            setReason('');
             setReason('');
             onClose(); // close panel
         } catch (error) {
@@ -800,13 +797,6 @@ const ImageSetter = ({ db, student, setNotification, setStudents }) => {
 
 // Student Detail Panel
 const StudentDetail = ({ student, onClose, db, adminId, setNotification, students, setStudents }) => {
-    console.log('StudentDetail component rendering for:', student?.name);
-    
-    if (!student) {
-        console.log('No student provided to StudentDetail');
-        return <div>No student data</div>;
-    }
-    
     // Point tier styling
     let pointColorClass = 'text-violet-600';
     let bgGradient = 'from-violet-50 to-purple-50';
@@ -823,9 +813,9 @@ const StudentDetail = ({ student, onClose, db, adminId, setNotification, student
     }
 
     return (
-        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-h-[95vh] overflow-hidden flex flex-col">
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className={`bg-gradient-to-r ${bgGradient} px-6 py-4 border-b border-gray-200 flex-shrink-0`}>
+            <div className={`bg-gradient-to-r ${bgGradient} px-6 py-4 border-b border-gray-200`}>
                 <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-4">
                         <img
@@ -839,12 +829,7 @@ const StudentDetail = ({ student, onClose, db, adminId, setNotification, student
                         </div>
                     </div>
                     <button 
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Closing student detail modal');
-                            onClose();
-                        }} 
+                        onClick={onClose} 
                         className="text-gray-400 hover:text-red-500 transition-colors p-2 hover:bg-white/50 rounded-xl"
                     >
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -855,7 +840,7 @@ const StudentDetail = ({ student, onClose, db, adminId, setNotification, student
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto flex-1 min-h-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <div className="overflow-y-auto flex-1 min-h-0">
                 {/* Points Display */}
                 <div className="px-6 py-6 text-center border-b border-gray-100">
                     <div className={`inline-flex items-baseline space-x-2 ${pointColorClass}`}>
@@ -977,7 +962,6 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
             className={cardClasses}
             onClick={() => {
                 console.log('Student card clicked:', student.name, student.id);
-                console.log('Calling onClick with student:', student);
                 onClick(student);
             }}
         >
@@ -1045,36 +1029,30 @@ const App = () => {
     const [animationStudent, setAnimationStudent] = useState(null);
     const [effectKey, setEffectKey] = useState(0);
 
-    // Debug selectedStudent changes
-    useEffect(() => {
-        console.log('selectedStudent changed:', selectedStudent?.name || 'null');
-    }, [selectedStudent]);
-
     // Handle click to start the sequenced animation
     const handleStudentClick = useCallback((student) => {
-        console.log('handleStudentClick called for:', student?.name, student?.id);
-        
-        if (!student) {
-            console.log('No student provided to handleStudentClick');
-            return;
-        }
-        
+        if (isAnimating) return;
+
         if (selectedStudent && selectedStudent.id === student.id) {
-            console.log('Same student clicked, closing modal');
             setSelectedStudent(null);
             return;
         }
 
-        console.log('Setting selected student:', student.name);
-        setSelectedStudent(student);
-        console.log('Selected student set successfully');
-        
-        // Optional: Keep simple animation without complex timing
         setIsAnimating(true);
-        setTimeout(() => {
-            setIsAnimating(false);
-        }, 300);
-    }, [isAnimating, selectedStudent]);
+        setAnimationStudent(student);
+        setEffectKey(prev => prev + 1);
+
+        // Sequence animation: 500ms for drop, then open panel, then disable animation
+        const dropTimeout = setTimeout(() => {
+            setSelectedStudent(student);
+            const openTimeout = setTimeout(() => {
+                setIsAnimating(false);
+                setAnimationStudent(null);
+            }, 700);
+            return () => clearTimeout(openTimeout);
+        }, 500);
+
+        return () => clearTimeout(dropTimeout);
 
     // Generate Admin's profile details
     const adminPlaceholderUrl = useMemo(() => userId ? generatePlaceholderUrl(userId) : 'https://ui-avatars.com/api/?name=?&background=cccccc&color=ffffff&size=40', [userId]);
@@ -1115,29 +1093,38 @@ const App = () => {
             {animationStudent && <WaterDropEffect effectKey={effectKey} />}
 
             <header className="mb-8 relative z-20">
-                <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border border-white/20">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-6">
-                            <div className="relative">
-                                <img 
-                                    src={localStorage.getItem("profilePic") || "https://ui-avatars.com/api/?name=A&background=666666&color=ffffff&size=80"} 
-                                    alt="Mentor Profile" 
-                                    className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
-                                />
-                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
+                <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/20">
+                    <div className="flex justify-between items-center flex-wrap">
+                        <div className="flex items-center space-x-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v14zM12 7h.01" />
+                                </svg>
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-800">
-                                    Welcome, <span className="text-blue-600">{JSON.parse(localStorage.getItem("currentUser") || '{}').name || "Prerna"}!</span>
+                                <h1 className="text-4xl font-bold text-gray-800 leading-tight">
+                                    Points Manager
                                 </h1>
-                                <p className="text-gray-600 font-medium">(Mentor)</p>
+                                <p className="text-gray-600 font-medium">Track & Reward Student Performance</p>
                             </div>
                         </div>
                         <div className="relative">
+                            <div className="flex items-center bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-2xl border border-indigo-200 shadow-lg">
+                                <div className="relative mr-4">
+                                    <img 
+                                        src={localStorage.getItem("profilePic") || "https://ui-avatars.com/api/?name=A&background=666666&color=ffffff&size=50"} 
+                                        alt="Admin Profile" 
+                                        className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-md"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-gray-800 text-sm">
+                                        {JSON.parse(localStorage.getItem("currentUser") || '{}').name || "Admin"}
+                                    </p>
+                                    <p className="text-xs text-green-600 font-medium">● Online</p>
+                                </div>
+                            </div>
                             <AdminEditIcon setNotification={setNotification} />
                         </div>
                     </div>
@@ -1146,7 +1133,7 @@ const App = () => {
 
             </header>
 
-            <div className={`relative z-10 transition-all duration-300 ${selectedStudent ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
+            <div className={`relative z-10 transition-all duration-300 ${selectedStudent ? 'opacity-20 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
                 <div className="opacity-100 pointer-events-auto">
                     <div className="bg-white/95 backdrop-blur-lg rounded-3xl p-8 shadow-2xl border border-white/20">
                         <div className="flex items-center justify-between mb-6">
@@ -1186,46 +1173,22 @@ const App = () => {
                         </div>
                     </div>
                 </div>
+
+                <div className={`fixed inset-0 z-[999] flex items-center justify-center p-4 transition-opacity duration-300 ${selectedStudent ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+                    <div className={`w-full max-w-2xl max-h-[90vh] transition-all duration-500 ease-out ${selectedStudent ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-8'}`}>
+                        {selectedStudent && (
+                            <StudentDetail
+                                student={students.find(s => s.id === selectedStudent.id) || selectedStudent}
+                                onClose={() => setSelectedStudent(null)}
+                                db={db}
+                                adminId={userId}
+                                setNotification={setNotification}
+                                setStudents={setStudents}
+                            />
+                        )}
+                    </div>
+                </div>
             </div>
-
-            {/* Debug: Show selected student info */}
-            {selectedStudent && (
-                <div className="fixed top-4 left-4 z-[10000] bg-red-500 text-white p-2 rounded text-sm">
-                    Selected: {selectedStudent.name}
-                </div>
-            )}
-
-            {/* Modal Overlay */}
-            {selectedStudent && (
-                <div 
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-90"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            console.log('Clicked outside modal, closing');
-                            setSelectedStudent(null);
-                        }
-                    }}
-                >
-                    {(() => {
-                        console.log('Modal is rendering for:', selectedStudent.name);
-                        return (
-                            <div className="w-full max-w-3xl max-h-[95vh] overflow-hidden transform transition-all duration-300 scale-100 opacity-100">
-                                <StudentDetail
-                                    student={students.find(s => s.id === selectedStudent.id) || selectedStudent}
-                                    onClose={() => {
-                                        console.log('Modal close button clicked');
-                                        setSelectedStudent(null);
-                                    }}
-                                    db={db}
-                                    adminId={userId}
-                                    setNotification={setNotification}
-                                    setStudents={setStudents}
-                                />
-                            </div>
-                        );
-                    })()} 
-                </div>
-            )}
         </div>
     );
 };
