@@ -23,18 +23,13 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
   const isVolunteered = task.volunteersList.includes(currentUser.name);
   const isFull = task.volunteersList.length >= task.required && !isVolunteered;
-  const isReady = task.status === 'Ready';
-  const isButtonDisabled = isReady || isFull;
 
   const progressPercent = Math.min(100, (task.volunteersList.length / task.required) * 100);
 
   const handleClick = () => onToggleVolunteer(task.id);
 
   let buttonContent, buttonClasses;
-  if (isReady) {
-    buttonContent = "Task Ready! Waiting for council approval.";
-    buttonClasses = 'bg-indigo-100 text-indigo-700 shadow-inner border border-indigo-300';
-  } else if (isVolunteered) {
+  if (isVolunteered) {
     buttonContent = <> <Hand className="w-5 h-5 mr-2 rotate-180" /> Lower Hand </>;
     buttonClasses = 'bg-red-500 text-white hover:bg-red-600 shadow-md transform hover:scale-105 transition-all';
   } else if (isFull) {
@@ -62,9 +57,8 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
           <h3 className="text-xl font-extrabold text-gray-800">{task.title}</h3>
           <div className="flex space-x-2">
             <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{task.category}</span>
-            <span className={`flex items-center text-sm font-semibold px-2 py-0.5 rounded-full ring-1 ${isReady ? 'bg-green-100 text-green-700 ring-green-300' : 'bg-blue-100 text-blue-700 ring-blue-300'}`}>
-              {isReady && <CheckCircle className="w-4 h-4 mr-1" />}
-              {task.status}
+            <span className="flex items-center text-sm font-semibold px-2 py-0.5 rounded-full ring-1 bg-blue-100 text-blue-700 ring-blue-300">
+              {task.status || "Active"}
             </span>
           </div>
         </div>
@@ -78,22 +72,29 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
         </p>
 
 
-        <div className="mb-4 h-2 bg-green-200 rounded-full">
-          <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }}></div>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs font-medium text-gray-600">Progress</span>
+            <span className="text-xs font-medium text-gray-600">
+              {task.volunteersList.length}/{task.required} volunteers
+            </span>
+          </div>
+          <div className="h-2 bg-green-200 rounded-full">
+            <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }}></div>
+          </div>
         </div>
 
-        <div className="text-xs text-gray-500 mb-5">
-          <span className="font-bold text-gray-700">Volunteers:</span> {task.volunteersList.join(', ') || 'None'}
-        </div>
+        {/* Only show volunteers to Council/Mentor, not to students */}
+        {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
+          <div className="text-xs text-gray-500 mb-5">
+            <span className="font-bold text-gray-700">Volunteers:</span> {task.volunteersList.join(', ') || 'None'}
+          </div>
+        )}
       </div>
 
-      {isReady ? (
-        <div className="w-full text-center py-2 px-4 rounded-lg font-bold text-sm bg-indigo-100 text-indigo-700 shadow-inner border border-indigo-300">{buttonContent}</div>
-      ) : (
-        <button disabled={isButtonDisabled} onClick={handleClick} className={`w-full flex items-center justify-center py-2 px-4 rounded-lg font-bold text-lg ${buttonClasses}`}>
-          {buttonContent}
-        </button>
-      )}
+      <button disabled={isFull} onClick={handleClick} className={`w-full flex items-center justify-center py-2 px-4 rounded-lg font-bold text-lg ${buttonClasses}`}>
+        {buttonContent}
+      </button>
     </div>
   );
 };
@@ -160,6 +161,33 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
     return () => unsubscribe();
   }, []);
 
+  // Sync tasks from localStorage (for deleted tasks from mentor dashboard)
+  useEffect(() => {
+    const syncTasksFromStorage = () => {
+      const storedTasks = JSON.parse(localStorage.getItem("dashboardTasks") || "[]");
+      console.log("Student Dashboard: Syncing tasks from localStorage:", storedTasks);
+      setTasks(storedTasks);
+    };
+
+    // Listen for localStorage changes
+    const handleStorageChange = (e) => {
+      if (e.key === "dashboardTasks") {
+        console.log("Student Dashboard: localStorage tasks changed, syncing...");
+        syncTasksFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for updates
+    const interval = setInterval(syncTasksFromStorage, 3000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [setTasks]);
+
   // Show profile animation timer
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -205,19 +233,43 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
         const updatedVolunteers = isVolunteered
           ? task.volunteersList.filter(name => name !== currentUserData.name)
           : [...task.volunteersList, currentUserData.name];
-        return { ...task, volunteersList: updatedVolunteers };
+        
+        return { 
+          ...task, 
+          volunteersList: updatedVolunteers
+        };
       }
       return task;
     });
     setTasks(updatedTasks);
     localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+    
+    // Trigger storage event for real-time sync with mentor dashboard
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: 'dashboardTasks',
+      newValue: JSON.stringify(updatedTasks),
+      oldValue: JSON.stringify(tasks)
+    }));
   };
 
   const handleRemoveTask = (taskId) => {
-    if ( currentUserData.role === "Mentor") {
-      const updatedTasks = tasks.filter(task => task.id !== taskId);
-      setTasks(updatedTasks);
-      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+    if (currentUserData.role === "Council" || currentUserData.role === "Mentor") {
+      const isConfirmed = window.confirm(
+        "Are you sure you want to delete this task? This action cannot be undone and will remove the task from all student dashboards as well."
+      );
+      
+      if (isConfirmed) {
+        const updatedTasks = tasks.filter(task => task.id !== taskId);
+        setTasks(updatedTasks);
+        localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+        
+        // Also trigger a storage event to sync with other tabs/windows
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'dashboardTasks',
+          newValue: JSON.stringify(updatedTasks),
+          oldValue: JSON.stringify(tasks)
+        }));
+      }
     } else {
       alert("You are not allowed to remove tasks.");
     }
