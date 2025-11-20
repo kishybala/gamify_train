@@ -173,7 +173,7 @@ const handleSubmit = async () => {
               Submit Task
             </button>
             <button
-              onClick={() => navigate(dashboardPath)}
+              onClick={() => navigate('/mentor-dashboard')}
               className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-2xl"
             >
               ← Back to Dashboard

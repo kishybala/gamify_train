@@ -2,15 +2,12 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell } from 'lucide-react';
+import { Trophy, Award, LogOut, Home, User, Zap, Menu } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Leaderboard() {
   const [users, setUsers] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
-  const [blinkBell, setBlinkBell] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [currentUserData, setCurrentUserData] = useState(
     JSON.parse(localStorage.getItem("currentUser")) || { role: "Guest", id: null, name: "Guest" }
   );
@@ -62,24 +59,7 @@ export default function Leaderboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    if (savedTasks.length > 0) {
-      setNotifications(savedTasks.map(task => ({ id: task.id, title: task.title, time: Date.now() })));
-
-      if (savedTasks.some(t => !notifications.find(n => n.id === t.id))) {
-        setBlinkBell(true);
-        setTimeout(() => setBlinkBell(false), 3000);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNotifications(prev => prev.filter(n => Date.now() - n.time < 60000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  
 
   const handleProfileChange = (e) => {
     const file = e.target.files[0];
@@ -104,6 +84,8 @@ export default function Leaderboard() {
       reader.readAsDataURL(file);
     }
   };
+
+  
 
   const handleLogout = async () => {
     try {
@@ -156,12 +138,24 @@ export default function Leaderboard() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
-            <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
-          </div>
-          <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
-            <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
-          </div>
+          {
+            currentUserData.role === 'Mentor' ? (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setTimePeriod('monthly')}
+                  className={`px-3 py-2 rounded-full border ${timePeriod === 'monthly' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                >Monthly</button>
+                <button
+                  onClick={() => setTimePeriod('all')}
+                  className={`px-3 py-2 rounded-full border ${timePeriod === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                >All time</button>
+              </div>
+            ) : (
+              <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
+                <Zap className="w-5 h-5 mr-2" /> <span>Points: 0</span>
+              </div>
+            )
+          }
 
           {/* Menu */}
           <div className="relative">
@@ -170,41 +164,17 @@ export default function Leaderboard() {
             </button>
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-200 z-20">
-                <Link to="/dashboard" className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold transition"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
-                <Link to="/badges" className="flex items-center px-4 py-3 hover:bg-purple-50 font-semibold transition"><Award className="w-5 h-5 mr-2" /> Badges</Link>
+                <Link to={currentUserData.role === "Mentor" ? "/mentor-dashboard" : "/dashboard"} className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold transition"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
                 <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 font-semibold transition"><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
                 {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
-                  <Link to="/AddTask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold transition"><User className="w-5 h-5 mr-2" /> Add Task</Link>
+                  <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold transition"><User className="w-5 h-5 mr-2" /> Add Task</Link>
                 )}
                 <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold transition"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
               </div>
             )}
           </div>
 
-          {/* Notification Bell */}
-          <div className="relative">
-            <button
-              onClick={() => setBellOpen(!bellOpen)}
-              className={`flex items-center p-2 rounded-full hover:bg-gray-100 transition ${blinkBell ? 'animate-bounce' : ''}`}
-            >
-              <Bell className="w-6 h-6" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-                <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length > 0 ? notifications.slice().reverse().map(n => (
-                    <div key={n.id} className="px-4 py-2 text-sm border-b last:border-b-0 hover:bg-gray-50">{n.title} added</div>
-                  )) : <p className="px-4 py-2 text-gray-500">No notifications</p>}
-                </div>
-              </div>
-            )}
-          </div>
+          
         </div>
       </header>
 

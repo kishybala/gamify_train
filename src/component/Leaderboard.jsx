@@ -2,20 +2,19 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User, Zap, Menu, Bell, Search, X } from 'lucide-react';
+import { Trophy, Award, LogOut, Home, User, Zap, Menu, Search, X } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Leaderboard() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [bellOpen, setBellOpen] = useState(false);
-  const [blinkBell, setBlinkBell] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const [currentUserData, setCurrentUserData] = useState(
     JSON.parse(localStorage.getItem("currentUser")) || { role: "Guest", id: null, name: "Guest" }
   );
   const [profilePic, setProfilePic] = useState(localStorage.getItem("profilePic") || currentUserData.profilePic || null);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editName, setEditName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -64,25 +63,7 @@ export default function Leaderboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    const savedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    if (savedTasks.length > 0) {
-      setNotifications(savedTasks.map(task => ({ id: task.id, title: task.title, time: Date.now() })));
-      setBlinkBell(true);
-      setTimeout(() => setBlinkBell(false), 3000);
-    }
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNotifications(prev => {
-        const filtered = prev.filter(n => Date.now() - n.time < 60000);
-        // Only update if there's actually a change
-        return filtered.length !== prev.length ? filtered : prev;
-      });
-    }, 5000); // Changed from 1000 to 5000 (5 seconds)
-    return () => clearInterval(interval);
-  }, []);
+  
 
   // Handle ESC key to close search
   useEffect(() => {
@@ -134,6 +115,21 @@ export default function Leaderboard() {
     }
   };
 
+  const handleRemoveProfile = async () => {
+    setProfilePic(null);
+    localStorage.removeItem("profilePic");
+    try {
+      if (currentUserData.id) {
+        const userRef = doc(db, "users", currentUserData.id);
+        await updateDoc(userRef, { profilePic: "" });
+      }
+    } catch (error) {
+      console.error("Error removing profile picture in database:", error);
+    }
+  };
+
+
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -177,9 +173,7 @@ export default function Leaderboard() {
               alt="Profile"
               className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
             />
-            <label htmlFor="profileUpload" className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs hover:bg-blue-600 transition">
-              ✏️
-            </label>
+            <button onClick={() => { setEditName(currentUserData.name || ""); setShowEditProfileModal(true); }} className="absolute bottom-0 right-0 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-sm hover:bg-blue-600 transition" title="Edit profile">✏️</button>
             <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
           </div>
           <div>
@@ -191,12 +185,25 @@ export default function Leaderboard() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
-            <Zap className="w-5 h-5 mr-2" /> <span>Points: {users.find(user => user.id === currentUserData.id)?.points || 0}</span>
-          </div>
-          <div className="flex items-center bg-purple-100 text-purple-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
-            <Award className="w-5 h-5 mr-2" /> <span>Badges: 0</span>
-          </div>
+          {
+            // If the logged in user is a Mentor, hide the points pill and show a simple time-period toggle.
+            currentUserData.role === 'Mentor' ? (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setTimePeriod('monthly')}
+                  className={`px-3 py-2 rounded-full border ${timePeriod === 'monthly' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                >Monthly</button>
+                <button
+                  onClick={() => setTimePeriod('all')}
+                  className={`px-3 py-2 rounded-full border ${timePeriod === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
+                >All time</button>
+              </div>
+            ) : (
+              <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
+                <Zap className="w-5 h-5 mr-2" /> <span>Points: {users.find(user => user.id === currentUserData.id)?.points || 0}</span>
+              </div>
+            )
+          }
 
           {/* Search Icon */}
           <div className="relative">
@@ -215,43 +222,70 @@ export default function Leaderboard() {
             </button>
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-200 z-20">
-                <Link to="/dashboard" className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold transition"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
-                <Link to="/badges" className="flex items-center px-4 py-3 hover:bg-purple-50 font-semibold transition"><Award className="w-5 h-5 mr-2" /> Badges</Link>
+                <Link to={currentUserData.role === "Mentor" ? "/mentor-dashboard" : "/dashboard"} className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold transition"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
                 <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 font-semibold transition"><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
                 {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
-                  <Link to="/AddTask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold transition"><User className="w-5 h-5 mr-2" /> Add Task</Link>
+                  <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold transition"><User className="w-5 h-5 mr-2" /> Add Task</Link>
                 )}
                 <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold transition"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
               </div>
             )}
           </div>
 
-          {/* Notification Bell */}
-          <div className="relative">
-            <button
-              onClick={() => setBellOpen(!bellOpen)}
-              className={`flex items-center p-2 rounded-full hover:bg-gray-100 transition ${blinkBell ? 'animate-bounce' : ''}`}
-            >
-              <Bell className="w-6 h-6" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-                <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length > 0 ? notifications.slice().reverse().map(n => (
-                    <div key={n.id} className="px-4 py-2 text-sm border-b last:border-b-0 hover:bg-gray-50">{n.title} added</div>
-                  )) : <p className="px-4 py-2 text-gray-500">No notifications</p>}
-                </div>
-              </div>
-            )}
-          </div>
+          
         </div>
       </header>
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Edit Profile</h3>
+              <button onClick={() => setShowEditProfileModal(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+                <div className="flex items-center gap-3">
+                  <input type="file" id="profileUploadModal" accept="image/*" onChange={handleProfileChange} className="hidden" />
+                  <label htmlFor="profileUploadModal" className="px-3 py-2 bg-blue-50 font-bold border rounded-md cursor-pointer">Choose Image</label>
+                  {profilePic && (
+                    <button onClick={handleRemoveProfile} className="px-3 py-1 bg-red-500 text-white rounded-md">Remove</button>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button onClick={() => setShowEditProfileModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const updated = { ...currentUserData, name: editName };
+                      setCurrentUserData(updated);
+                      localStorage.setItem('currentUser', JSON.stringify(updated));
+                      if (currentUserData.id) {
+                        const userRef = doc(db, 'users', currentUserData.id);
+                        await updateDoc(userRef, { name: editName, profilePic: profilePic || '' });
+                      }
+                    } catch (err) {
+                      console.error('Error saving profile changes:', err);
+                    } finally {
+                      setShowEditProfileModal(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search Dropdown */}
       {searchOpen && (
