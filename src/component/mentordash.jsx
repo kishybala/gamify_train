@@ -11,7 +11,6 @@ import {
   Zap,
   Menu,
   Trash2,
-  Bell,
   CheckCircle,
   X,
   Mail,
@@ -31,46 +30,32 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
     if (isOpen && studentName) {
       fetchStudentData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, studentName]);
 
   const fetchStudentData = async () => {
     setLoading(true);
     try {
-      // Search for student by name
-      const usersQuery = query(
-        collection(db, "users"), 
-        where("name", "==", studentName)
-      );
+      const usersQuery = query(collection(db, "users"), where("name", "==", studentName));
       const querySnapshot = await getDocs(usersQuery);
-      
       if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        setStudentData({ id: doc.id, ...doc.data() });
+        const docItem = querySnapshot.docs[0];
+        setStudentData({ id: docItem.id, ...docItem.data() });
       } else {
         setStudentData(null);
       }
     } catch (error) {
       console.error("Error fetching student data:", error);
       setStudentData(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const getProfileImage = (user) => {
-    // If user has profilePic in database, use it
-    if (user && user.profilePic) {
-      return user.profilePic;
-    }
-    
-    // For current user, check localStorage as fallback
+    if (user && user.profilePic) return user.profilePic;
     const currentUserData = JSON.parse(localStorage.getItem("currentUser")) || {};
-    if (user && user.id === currentUserData.id) {
-      const localProfilePic = localStorage.getItem("profilePic");
-      if (localProfilePic) {
-        return localProfilePic;
-      }
-    }
-    
+    if (user && user.id === currentUserData.id) return localStorage.getItem("profilePic") || "https://via.placeholder.com/150";
     return "https://via.placeholder.com/150";
   };
 
@@ -79,20 +64,15 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header with Close Button */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white rounded-t-3xl">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold">Student Profile</h2>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
-            >
+            <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           {loading ? (
             <div className="text-center py-8">
@@ -101,47 +81,18 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
             </div>
           ) : studentData ? (
             <>
-              {/* Profile Header */}
               <div className="text-center mb-6">
                 <div className="relative inline-block">
-                  <img 
-                    src={getProfileImage(studentData)} 
-                    alt="Profile" 
-                    className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg mx-auto"
-                  />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                    <Trophy className="w-3 h-3 text-white" />
-                  </div>
+                  <img src={getProfileImage(studentData)} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-blue-200 shadow-lg mx-auto" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 mt-4">
-                  {studentData.name || "Unknown Student"}
-                </h3>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${
-                  studentData.role === 'Council' ? 'bg-red-200 text-red-800' :
-                  studentData.role === 'Mentor' ? 'bg-green-200 text-green-800' : 
-                  'bg-blue-200 text-blue-800'
-                }`}>
-                  {studentData.role || 'Student'}
-                </span>
+                <h3 className="text-2xl font-bold text-gray-800 mt-4">{studentData.name || 'Unknown Student'}</h3>
+                <p className="text-sm text-gray-500 mt-1">{studentData.role || ''}</p>
               </div>
 
-              {/* Points Display */}
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4 mb-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">
-                    {studentData.points || 0}
-                  </div>
-                  <div className="text-sm text-orange-700">Total Points</div>
-                </div>
-              </div>
-
-              {/* Contact Information */}
               <div className="space-y-3">
                 {studentData.email && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Mail className="w-4 h-4 text-blue-600" />
-                    </div>
+                    <div className="p-2 bg-blue-100 rounded-lg"><Mail className="w-4 h-4 text-blue-600" /></div>
                     <div>
                       <div className="font-medium text-gray-800 text-sm">Email</div>
                       <div className="text-gray-600 text-sm">{studentData.email}</div>
@@ -151,9 +102,7 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
 
                 {studentData.department && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Users className="w-4 h-4 text-purple-600" />
-                    </div>
+                    <div className="p-2 bg-purple-100 rounded-lg"><Users className="w-4 h-4 text-purple-600" /></div>
                     <div>
                       <div className="font-medium text-gray-800 text-sm">Department</div>
                       <div className="text-gray-600 text-sm">{studentData.department}</div>
@@ -162,7 +111,6 @@ const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) 
                 )}
               </div>
 
-              {/* Action to view full profile */}
               <div className="mt-6">
                 <button
                   onClick={() => {
@@ -228,9 +176,18 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
             <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
               {task.category}
             </span>
-            <span className="inline-block text-xs font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
-              {task.status || "Active"}
-            </span>
+            {task.status !== "Pending" && (
+              <span
+                className={`flex items-center text-sm font-semibold px-2 py-0.5 rounded-full ring-1 ${
+                  isReady
+                    ? "bg-green-100 text-green-700 ring-green-300"
+                    : "bg-blue-100 text-blue-700 ring-blue-300"
+                }`}
+              >
+                {isReady && <CheckCircle className="w-4 h-4 mr-1" />}
+                {task.status}
+              </span>
+            )}
           </div>
         </div>
 
@@ -279,11 +236,11 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
 // --- Main Mentor Dashboard ---
 export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [bellOpen, setBellOpen] = useState(false);
-  const [blinkBell, setBlinkBell] = useState(false);
+  
   const [studentModalOpen, setStudentModalOpen] = useState(false);
   const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editName, setEditName] = useState("");
   const navigate = useNavigate();
 
   // Helper to produce a display name: prefer `name`, then derive from email local-part
@@ -343,71 +300,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     return () => unsubscribe();
   }, []);
 
-  // Sync tasks from localStorage (for volunteer updates from student dashboard)
-  useEffect(() => {
-    const syncTasksFromStorage = () => {
-      const storedTasks = JSON.parse(localStorage.getItem("dashboardTasks") || "[]");
-      // Always sync - even if empty array, to handle task removal
-      const normalizedTasks = storedTasks.map(task => ({
-        ...task,
-        volunteersList: task.volunteersList || [],
-        status: task.status || "Ready"
-      }));
-      
-      // Only update if there's actually a difference to prevent infinite re-renders
-      const currentTasksString = JSON.stringify(tasks);
-      const newTasksString = JSON.stringify(normalizedTasks);
-      
-      if (currentTasksString !== newTasksString) {
-        console.log("Syncing tasks from localStorage:", normalizedTasks);
-        setTasks(normalizedTasks);
-      }
-    };
-
-    // Initial sync on component mount
-    syncTasksFromStorage();
-
-    // Listen for localStorage changes (cross-tab syncing)
-    const handleStorageChange = (e) => {
-      if (e.key === "dashboardTasks") {
-        console.log("localStorage dashboardTasks changed externally, syncing...");
-        syncTasksFromStorage();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // More frequent checking for same-tab updates
-    const interval = setInterval(() => {
-      const currentStoredTasks = localStorage.getItem("dashboardTasks");
-      const currentInMemoryTasks = JSON.stringify(tasks);
-      
-      if (currentStoredTasks && currentStoredTasks !== currentInMemoryTasks) {
-        console.log("Periodic sync: tasks changed, updating...");
-        syncTasksFromStorage();
-      }
-    }, 1000); // Check every second for better responsiveness
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, [tasks, setTasks]); // Include tasks in dependency to prevent stale closures
-
-  // --- Notifications ---
-  useEffect(() => {
-    if (tasks && tasks.length > 0) {
-      setNotifications((prev) => {
-        const existingIds = prev.map((n) => n.id);
-        const newNotifications = tasks
-          .filter((t) => !existingIds.includes(t.id))
-          .map((t) => ({ id: t.id, title: t.title, time: Date.now() }));
-        return [...prev, ...newNotifications];
-      });
-      setBlinkBell(true);
-      setTimeout(() => setBlinkBell(false), 3000);
-    }
-  }, [tasks]);
+  
 
   // Normalize tasks: ensure unique ids for tasks coming from older versions/localStorage
   useEffect(() => {
@@ -479,6 +372,21 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
       reader.readAsDataURL(file);
     }
   };
+  
+  const handleRemoveProfile = async () => {
+    setProfilePic(null);
+    localStorage.removeItem("profilePic");
+    try {
+      if (currentUserData.id) {
+        const userRef = doc(db, "users", currentUserData.id);
+        await updateDoc(userRef, { profilePic: "" });
+      }
+    } catch (error) {
+      console.error("Error removing profile picture in database:", error);
+    }
+  };
+  
+
 
   const handleLogout = async () => {
     try {
@@ -501,19 +409,18 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
               alt="Profile"
               className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
             />
-            <label
-              htmlFor="profileUpload"
-              className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs"
+            <button
+              onClick={() => {
+                const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                setEditName(stored.name || currentUserData.name || '');
+                setShowEditProfileModal(true);
+              }}
+              className="absolute bottom-0 right-0 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-sm hover:bg-blue-600 transition"
+              title="Edit profile"
             >
               ✏️
-            </label>
-            <input
-              type="file"
-              id="profileUpload"
-              accept="image/*"
-              onChange={handleProfileChange}
-              className="hidden"
-            />
+            </button>
+            <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
           </div>
           <div>
             <div className="text-xl font-bold text-gray-800">
@@ -535,14 +442,14 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
                 <Link
-                  to="/dashboard"
+                  to="/mentor-dashboard"
                   className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 rounded-t-xl font-semibold"
                   onClick={() => setMenuOpen(false)}
                 >
                   <Home className="w-5 h-5 mr-2" /> Dashboard
                 </Link>
                 <Link
-                  to="/AddTask"
+                  to="/addtask"
                   className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold"
                   onClick={() => setMenuOpen(false)}
                 >
@@ -554,13 +461,6 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
                   onClick={() => setMenuOpen(false)}
                 >
                   <Zap className="w-5 h-5 mr-2" /> Give Points
-                </Link>
-                <Link
-                  to="/badges"
-                  className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Award className="w-5 h-5 mr-2" /> Badges
                 </Link>
                 <Link
                   to="/leaderboard"
@@ -579,46 +479,60 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
             )}
           </div>
 
-          {/* Notification Bell */}
-          <div className="relative">
-            <button
-              onClick={() => setBellOpen(!bellOpen)}
-              className={`flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100 ${
-                blinkBell ? "animate-bounce" : ""
-              }`}
-            >
-              <Bell className="w-6 h-6" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-                <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    notifications
-                      .slice()
-                      .reverse()
-                      .map((n) => (
-                        <div
-                          key={n.id}
-                          className="px-4 py-2 text-sm border-b last:border-b-0"
-                        >
-                          {n.title} added
-                        </div>
-                      ))
-                  ) : (
-                    <p className="px-4 py-2 text-gray-500">No notifications</p>
+          
+        </div>
+      </header>
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Edit Profile</h3>
+              <button onClick={() => setShowEditProfileModal(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border rounded-md" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+                <div className="flex items-center gap-3">
+                  <input type="file" id="profileUploadModal" accept="image/*" onChange={handleProfileChange} className="hidden" />
+                  <label htmlFor="profileUploadModal" className="px-3 py-2 bg-blue-50 font-bold border rounded-md cursor-pointer">Choose Image</label>
+                  {profilePic && (
+                    <button onClick={handleRemoveProfile} className="px-3 py-1 bg-red-500 text-white rounded-md">Remove</button>
                   )}
                 </div>
               </div>
-            )}
+              <div className="flex justify-end space-x-2">
+                <button onClick={() => setShowEditProfileModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const updated = { ...currentUserData, name: editName };
+                      setCurrentUserData(updated);
+                      localStorage.setItem('currentUser', JSON.stringify(updated));
+                      if (currentUserData.id) {
+                        const userRef = doc(db, 'users', currentUserData.id);
+                        await updateDoc(userRef, { name: editName, profilePic: profilePic || '' });
+                      }
+                    } catch (err) {
+                      console.error('Error saving profile changes:', err);
+                    } finally {
+                      setShowEditProfileModal(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </header>
+      )}
 
       {/* Task Board */}
       <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
