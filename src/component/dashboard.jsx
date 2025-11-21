@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
 
 // --- TaskCard Component ---
 const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
@@ -97,6 +97,7 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
 export default function Dashboard({ tasks, setTasks, currentUser }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [currentUserData, setCurrentUserData] = useState(
     currentUser || JSON.parse(localStorage.getItem("currentUser")) || { role: "Guest", id: null, name: "Guest" }
   );
@@ -104,6 +105,9 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState("");
   const navigate = useNavigate();
+
+  // --- GLOBAL VARIABLES (Mandatory) ---
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
   // Helper to produce a display name: prefer `name`, then derive from email local-part
   const getDisplayName = (user) => {
@@ -125,9 +129,8 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
         if (docSnap.exists()) {
           const userData = docSnap.data();
           
-          // Check localStorage for updated points (from mentor giving points)
-          const localStoragePoints = localStorage.getItem(`userPoints_${user.uid}`);
-          const currentPoints = localStoragePoints ? parseInt(localStoragePoints) : (userData.totalPoints || userData.points || 0);
+          // Get current points - read from totalPoints (which is updated by mentor)
+          const currentPoints = userData.totalPoints || userData.points || 0;
           
           // Helper function to extract first name from email
           const extractFirstName = (displayName, email) => {
@@ -148,7 +151,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             name: firstName,
             email: user.email,
             role: userData.role || "Student",
-            points: userData.points || 0,
+            points: currentPoints, // Use totalPoints from Firestore
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUserData(updatedUser);
@@ -161,6 +164,32 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             setProfilePic(null);
             localStorage.removeItem("profilePic");
           }
+          
+          // Add real-time listener for point updates from mentor
+          // Listen to the student data in artifacts collection where mentor updates points
+          const studentDataRef = doc(db, `artifacts/${appId}/public/data/students/${user.uid}`);
+          const unsubscribeStudentData = onSnapshot(studentDataRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const studentData = docSnap.data();
+              const updatedPoints = studentData.totalPoints || 0;
+              console.log('Real-time points update:', updatedPoints);
+              
+              // Update the displayed points
+              setCurrentUserData(prevUser => ({
+                ...prevUser,
+                points: updatedPoints
+              }));
+              
+              // Update localStorage
+              const updated = JSON.parse(localStorage.getItem("currentUser") || "{}");
+              updated.points = updatedPoints;
+              localStorage.setItem("currentUser", JSON.stringify(updated));
+            }
+          }, (error) => {
+            console.log('Error listening to student data:', error);
+          });
+          
+          return () => unsubscribeStudentData();
         }
       }
     });
@@ -314,13 +343,19 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
   
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
     try {
       await signOut(auth);
       localStorage.removeItem("currentUser");
+      setShowLogoutConfirm(false);
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       alert("Failed to logout.");
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -471,7 +506,32 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             </div>
           </div>
 
-          
+          {/* Logout Confirmation Modal */}
+          {showLogoutConfirm && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all">
+                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                  <LogOut className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-center text-gray-900 mb-2">Logout</h3>
+                <p className="text-gray-600 text-center mb-6">Are you sure you want to logout? You will be returned to the login page.</p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmLogout}
+                    className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
