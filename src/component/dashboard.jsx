@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, updateDoc, onSnapshot, collection, query, orderBy, getDocs } from "firebase/firestore";
 
 // --- TaskCard Component ---
 const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
@@ -78,7 +78,26 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
           </div>
         </div>
 
-        {/* Only show volunteers to Council/Mentor, not to students */}
+        {/* Show hand raise status to students */}
+        {currentUser.role !== "Council" && currentUser.role !== "Mentor" && (
+          <div className="text-xs text-gray-500 mb-5">
+            {isVolunteered ? (
+              <div className="bg-green-100 border border-green-300 rounded-lg p-2">
+                <span className="font-bold text-green-700">🙋‍♂️ You raised your hand!</span>
+              </div>
+            ) : isFull ? (
+              <div className="bg-gray-100 border border-gray-300 rounded-lg p-2">
+                <span className="font-bold text-gray-600">✅ Task is full - all spots taken</span>
+              </div>
+            ) : (
+              <div className="bg-blue-100 border border-blue-300 rounded-lg p-2">
+                <span className="font-bold text-blue-700">👋 Available - click to raise hand</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show volunteers to Council/Mentor only */}
         {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
           <div className="text-xs text-gray-500 mb-5">
             <span className="font-bold text-gray-700">Volunteers:</span> {task.volunteersList.join(', ') || 'None'}
@@ -196,26 +215,52 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
     return () => unsubscribe();
   }, []);
 
-  // Sync tasks from localStorage (for deleted tasks from mentor dashboard)
+  // Fetch tasks from Firebase and sync with localStorage
   useEffect(() => {
-    const syncTasksFromStorage = () => {
-      const storedTasks = JSON.parse(localStorage.getItem("dashboardTasks") || "[]");
-      console.log("Student Dashboard: Syncing tasks from localStorage:", storedTasks);
-      setTasks(storedTasks);
+    const fetchTasksFromFirebase = async () => {
+      try {
+        const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(tasksQuery);
+        const firebaseTasks = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()
+        }));
+        
+        // Normalize Firebase tasks
+        const normalizedTasks = firebaseTasks.map(task => ({
+          ...task,
+          volunteersList: Array.isArray(task.volunteersList) ? task.volunteersList : [],
+          status: task.status || "Ready",
+          required: task.required || 1
+        }));
+        
+        setTasks(normalizedTasks);
+        localStorage.setItem("dashboardTasks", JSON.stringify(normalizedTasks));
+        console.log("✅ Student Dashboard: Tasks loaded from Firebase:", normalizedTasks.length);
+      } catch (error) {
+        console.error("❌ Student Dashboard: Error fetching tasks from Firebase:", error);
+        // Fallback to localStorage if Firebase fails
+        const storedTasks = JSON.parse(localStorage.getItem("dashboardTasks") || "[]");
+        setTasks(storedTasks);
+      }
     };
 
-    // Listen for localStorage changes
+    // Fetch on mount
+    fetchTasksFromFirebase();
+
+    // Listen for localStorage changes (for cross-tab sync)
     const handleStorageChange = (e) => {
       if (e.key === "dashboardTasks") {
         console.log("Student Dashboard: localStorage tasks changed, syncing...");
-        syncTasksFromStorage();
+        fetchTasksFromFirebase();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
     
-    // Also check periodically for updates
-    const interval = setInterval(syncTasksFromStorage, 3000);
+    // Refresh tasks periodically to catch updates
+    const interval = setInterval(fetchTasksFromFirebase, 10000); // Every 10 seconds
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -236,30 +281,48 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
 
   
 
-  const handleToggleVolunteer = (taskId) => {
-    const updatedTasks = tasks.map(task => {
-      if (task.id === taskId) {
-        const isVolunteered = task.volunteersList.includes(currentUserData.name);
-        const updatedVolunteers = isVolunteered
-          ? task.volunteersList.filter(name => name !== currentUserData.name)
-          : [...task.volunteersList, currentUserData.name];
-        
-        return { 
-          ...task, 
-          volunteersList: updatedVolunteers
-        };
-      }
-      return task;
-    });
-    setTasks(updatedTasks);
-    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-    
-    // Trigger storage event for real-time sync with mentor dashboard
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: 'dashboardTasks',
-      newValue: JSON.stringify(updatedTasks),
-      oldValue: JSON.stringify(tasks)
-    }));
+  const handleToggleVolunteer = async (taskId) => {
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const isVolunteered = task.volunteersList.includes(currentUserData.name);
+      const updatedVolunteers = isVolunteered
+        ? task.volunteersList.filter(name => name !== currentUserData.name)
+        : [...task.volunteersList, currentUserData.name];
+
+      // Update Firebase first
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, {
+        volunteersList: updatedVolunteers
+      });
+
+      // Update local state
+      const updatedTasks = tasks.map(t => {
+        if (t.id === taskId) {
+          return { 
+            ...t, 
+            volunteersList: updatedVolunteers
+          };
+        }
+        return t;
+      });
+      
+      setTasks(updatedTasks);
+      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+      
+      // Trigger storage event for real-time sync with mentor dashboard
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'dashboardTasks',
+        newValue: JSON.stringify(updatedTasks),
+        oldValue: JSON.stringify(tasks)
+      }));
+
+      console.log(`Hand ${isVolunteered ? 'lowered' : 'raised'} for task: ${task.title}`);
+    } catch (error) {
+      console.error("Error updating volunteer status:", error);
+      alert("Failed to update hand raise. Please try again.");
+    }
   };
 
   const handleRemoveTask = (taskId) => {
