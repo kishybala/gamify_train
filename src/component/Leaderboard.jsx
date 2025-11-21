@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User, Zap, Menu, Search, X } from 'lucide-react';
+import { Trophy, LogOut, Home, User, Zap, Menu, Search, X } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Leaderboard() {
@@ -17,6 +17,7 @@ export default function Leaderboard() {
   const [editName, setEditName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Helper function to get profile image with fallback logic
   const getProfileImage = (user) => {
@@ -131,12 +132,17 @@ export default function Leaderboard() {
 
 
   const handleLogout = async () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = async () => {
     try {
       await signOut(auth);
       localStorage.clear();
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
+      setShowLogoutConfirm(false);
     }
   };
 
@@ -265,13 +271,7 @@ export default function Leaderboard() {
                     >
                       <Zap className="w-5 h-5 mr-2" /> Give Points
                     </Link>
-                    <Link
-                      to="/badges"
-                      className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Award className="w-5 h-5 mr-2" /> Badges
-                    </Link>
+                    {/* Badges removed per project requirement */}
                     <Link
                       to="/leaderboard"
                       className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold bg-green-50 text-green-600"
@@ -279,6 +279,15 @@ export default function Leaderboard() {
                     >
                       <Trophy className="w-5 h-5 mr-2" /> Leaderboard
                     </Link>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 hover:text-red-600 font-semibold"
+                    >
+                      <LogOut className="w-5 h-5 mr-2" /> Logout
+                    </button>
                   </>
                 ) : (
                   <>
@@ -289,13 +298,7 @@ export default function Leaderboard() {
                     >
                       <Home className="w-5 h-5 mr-2" /> Dashboard
                     </Link>
-                    <Link 
-                      to="/badges" 
-                      className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold transition"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <Award className="w-5 h-5 mr-2" /> Badges
-                    </Link>
+                    {/* Badges removed per project requirement */}
                     <Link 
                       to="/leaderboard" 
                       className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 font-semibold bg-blue-50 text-blue-600 transition"
@@ -312,50 +315,21 @@ export default function Leaderboard() {
                         <User className="w-5 h-5 mr-2" /> Add Task
                       </Link>
                     )}
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 hover:text-red-600 font-semibold"
+                    >
+                      <LogOut className="w-5 h-5 mr-2" /> Logout
+                    </button>
                   </>
                 )}
               </div>
             )}
           </div>
 
-          {/* Notification Bell */}
-          <div className="relative">
-            <button
-              onClick={() => setBellOpen(!bellOpen)}
-              className={`flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100 ${
-                blinkBell ? "animate-bounce" : ""
-              }`}
-            >
-              <Bell className="w-6 h-6" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            {bellOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-                <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
-                <div className="max-h-60 overflow-y-auto">
-                  {notifications.length > 0 ? (
-                    notifications
-                      .slice()
-                      .reverse()
-                      .map((n) => (
-                        <div
-                          key={n.id}
-                          className="px-4 py-2 text-sm border-b last:border-b-0"
-                        >
-                          {n.title} added
-                        </div>
-                      ))
-                  ) : (
-                    <p className="px-4 py-2 text-gray-500">No notifications</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
           
         </div>
       </header>
@@ -406,6 +380,33 @@ export default function Leaderboard() {
                   Save
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+              <LogOut className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-center text-gray-900 mb-2">Logout</h3>
+            <p className="text-gray-600 text-center mb-6">Are you sure you want to logout? You will be returned to the login page.</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

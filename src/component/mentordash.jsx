@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Trophy,
-  Award,
   LogOut,
   Users,
   Home,
@@ -410,22 +409,6 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
       clearInterval(interval);
     };
   }, [setTasks]); // Remove tasks from dependency to prevent infinite loops
-
-  // --- Notifications ---
-  useEffect(() => {
-    if (tasks && tasks.length > 0) {
-      setNotifications((prev) => {
-        const existingIds = prev.map((n) => n.id);
-        const newNotifications = tasks
-          .filter((t) => !existingIds.includes(t.id))
-          .map((t) => ({ id: t.id, title: t.title, time: Date.now() }));
-        return [...prev, ...newNotifications];
-      });
-      setBlinkBell(true);
-      setTimeout(() => setBlinkBell(false), 3000);
-    }
-  }, [tasks]);
-  
 
   // Normalize tasks: ensure unique ids for tasks coming from older versions/localStorage
   useEffect(() => {
