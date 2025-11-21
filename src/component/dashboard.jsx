@@ -40,14 +40,14 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
+    <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
       {/* Delete button only for Council and Mentor, completely removed for students */}
 
       <div>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-xl font-extrabold text-gray-800">{task.title}</h3>
-          <div className="flex space-x-2">
-            <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{task.category}</span>
+        <div className="flex justify-between items-start mb-3 gap-2">
+          <h3 className="text-lg sm:text-xl font-extrabold text-gray-800 flex-1 line-clamp-2">{task.title}</h3>
+          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 shrink-0">
+            <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full whitespace-nowrap">{task.category}</span>
             {task.status !== 'Pending' && (
               <span className={`flex items-center text-sm font-semibold px-2 py-0.5 rounded-full ring-1 ${isReady ? 'bg-green-100 text-green-700 ring-green-300' : 'bg-blue-100 text-blue-700 ring-blue-300'}`}>
                 {isReady && <CheckCircle className="w-4 h-4 mr-1" />}
@@ -57,41 +57,42 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
           </div>
         </div>
 
-        <p className="text-gray-600 mb-2 text-sm">{task.desc}</p>
-        <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Assign Department:</span> {task.assignedTo}</p>
-        <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Points:</span> {task.points}</p>
-        <p className="text-gray-700 mb-2 text-sm"><span className="font-semibold">Deadline:</span> {task.deadline || 'N/A'}</p>
-        <p className="text-gray-700 mb-2 text-sm">
-          <span className="font-semibold">Member Number:</span> {task.memberNumber || 'N/A'}
-        </p>
+        <p className="text-gray-600 mb-2 text-xs sm:text-sm line-clamp-3">{task.desc}</p>
+        <div className="space-y-1 mb-3">
+          <p className="text-gray-700 text-xs sm:text-sm"><span className="font-semibold">Department:</span> <span className="break-words">{task.assignedTo}</span></p>
+          <p className="text-gray-700 text-xs sm:text-sm"><span className="font-semibold">Points:</span> {task.points}</p>
+          <p className="text-gray-700 text-xs sm:text-sm"><span className="font-semibold">Deadline:</span> {task.deadline || 'N/A'}</p>
+          <p className="text-gray-700 text-xs sm:text-sm">
+            <span className="font-semibold">Members:</span> {task.memberNumber || 'N/A'}
+          </p>
+        </div>
 
-
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <div className="flex justify-between items-center mb-1">
             <span className="text-xs font-medium text-gray-600">Progress</span>
             <span className="text-xs font-medium text-gray-600">
-              {task.volunteersList.length}/{task.required} volunteers
+              {task.volunteersList.length}/{task.required}
             </span>
           </div>
-          <div className="h-2 bg-green-200 rounded-full">
+          <div className="h-1.5 sm:h-2 bg-green-200 rounded-full">
             <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }}></div>
           </div>
         </div>
 
         {/* Show hand raise status to students */}
         {currentUser.role !== "Council" && currentUser.role !== "Mentor" && (
-          <div className="text-xs text-gray-500 mb-5">
+          <div className="text-xs text-gray-500 mb-3 sm:mb-5">
             {isVolunteered ? (
               <div className="bg-green-100 border border-green-300 rounded-lg p-2">
-                <span className="font-bold text-green-700">🙋‍♂️ You raised your hand!</span>
+                <span className="font-bold text-green-700 text-xs sm:text-sm">🙋‍♂️ You raised your hand!</span>
               </div>
             ) : isFull ? (
               <div className="bg-gray-100 border border-gray-300 rounded-lg p-2">
-                <span className="font-bold text-gray-600">✅ Task is full - all spots taken</span>
+                <span className="font-bold text-gray-600 text-xs sm:text-sm">✅ Task is full - all spots taken</span>
               </div>
             ) : (
               <div className="bg-blue-100 border border-blue-300 rounded-lg p-2">
-                <span className="font-bold text-blue-700">👋 Available - click to raise hand</span>
+                <span className="font-bold text-blue-700 text-xs sm:text-sm">👋 Available - click to raise hand</span>
               </div>
             )}
           </div>
@@ -99,13 +100,13 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
 
         {/* Show volunteers to Council/Mentor only */}
         {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
-          <div className="text-xs text-gray-500 mb-5">
-            <span className="font-bold text-gray-700">Volunteers:</span> {task.volunteersList.join(', ') || 'None'}
+          <div className="text-xs text-gray-500 mb-3 sm:mb-5">
+            <span className="font-bold text-gray-700">Volunteers:</span> <span className="break-words">{task.volunteersList.join(', ') || 'None'}</span>
           </div>
         )}
       </div>
 
-      <button disabled={isFull} onClick={handleClick} className={`w-full flex items-center justify-center py-2 px-4 rounded-lg font-bold text-lg ${buttonClasses}`}>
+      <button disabled={isFull} onClick={handleClick} className={`w-full flex items-center justify-center py-2 sm:py-3 px-3 sm:px-4 rounded-lg font-bold text-sm sm:text-base md:text-lg ${buttonClasses}`}>
         {buttonContent}
       </button>
     </div>
@@ -426,7 +427,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
     <div className="min-h-screen font-inter bg-gray-50">
       {/* Profile animation */}
       {!showDashboard ? (
-        <div className="flex flex-col items-center justify-center h-screen text-center relative">
+        <div className="flex flex-col items-center justify-center h-screen text-center relative px-4">
           <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-30">
             <source src="/s.mp4" type="video/mp4" />
           </video>
@@ -434,99 +435,100 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
             <img
               src={profilePic || "https://via.placeholder.com/90"}
               alt="Profile"
-              className="w-32 h-32 rounded-full border-4 border-green-400 object-cover mb-4 shadow-lg animate-bounce"
+              className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full border-4 border-green-400 object-cover mb-4 shadow-lg animate-bounce"
             />
-            <h1 className="text-3xl font-bold text-green-700 animate-pulse">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-green-700 animate-pulse">
               Welcome, {getDisplayName(currentUserData)} 🌸
             </h1>
-            <p className="text-gray-600 mt-2 animate-pulse">Loading your dashboard...</p>
+            <p className="text-sm sm:text-base text-gray-600 mt-2 animate-pulse">Loading your dashboard...</p>
           </div>
         </div>
       ) : (
         <>
           {/* Dashboard Header */}
-          <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="relative w-30 h-30">
-                <img
-                  src={profilePic || "https://via.placeholder.com/90"}
-                  alt="Profile"
-                  className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
-                />
-                <button
-                  onClick={() => {
-                    const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                    setEditName(stored.name || currentUserData.name || '');
-                    setShowEditProfileModal(true);
-                  }}
-                  className="absolute bottom-0 right-0 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-sm hover:bg-blue-600 transition"
-                  title="Edit profile"
-                >
-                  ✏️
-                </button>
-                <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
-              </div>
-              <div>
-                <div className="text-xl font-bold text-gray-800">
-                  Welcome, <span className="text-green-600">{getDisplayName(currentUserData)}</span>!
+          <header className="bg-white p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 mb-4 sm:mb-6 mx-2 sm:mx-0">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="relative">
+                  <img
+                    src={profilePic || "https://via.placeholder.com/90"}
+                    alt="Profile"
+                    className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
+                  />
+                  <button
+                    onClick={() => {
+                      const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                      setEditName(stored.name || currentUserData.name || '');
+                      setShowEditProfileModal(true);
+                    }}
+                    className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center cursor-pointer text-xs sm:text-sm hover:bg-blue-600 transition"
+                    title="Edit profile"
+                  >
+                    ✏️
+                  </button>
+                  <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
                 </div>
-                <span className="text-sm text-gray-500">({currentUserData.role})</span>
-              </div>
-            </div>
-
-            {/* Right icons */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md">
-                <Zap className="w-5 h-5 mr-2" /> <span>Points: {currentUserData.points || 0}</span>
-              </div>
-             
-
-              {/* Menu */}
-              <div className="relative">
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full hover:bg-gray-100">
-                  <Menu className="w-6 h-6" />
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-                    <Link to="/dashboard" className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
-                    <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 font-semibold"><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
-                    {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
-                      <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold"><User className="w-5 h-5 mr-2" /> Add Task</Link>
-                    )}
-                    <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold"><LogOut className="w-5 h-5 mr-2" /> Logout</button>
+                <div className="flex-1 min-w-0">
+                  <div className="text-lg sm:text-xl md:text-xl font-bold text-gray-800 truncate">
+                    Welcome, <span className="text-green-600">{getDisplayName(currentUserData)}</span>!
                   </div>
-                )}
+                  <span className="text-xs sm:text-sm text-gray-500">({currentUserData.role})</span>
+                </div>
               </div>
 
-              
-            </div>
-          </header>
+                {/* Points Display */}
+                <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-2 py-1 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-full shadow-md text-xs sm:text-sm">
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1 sm:mr-2" /> 
+                  <span className="hidden sm:inline">Points: </span>
+                  <span>{currentUserData.points || 0}</span>
+                </div>
+
+                {/* Menu */}
+                <div className="relative">
+                  <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100">
+                    <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 mt-2 w-44 sm:w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                      <Link to="/dashboard" className="flex items-center px-3 sm:px-4 py-2 sm:py-3 hover:bg-green-50 font-semibold text-sm sm:text-base"><Home className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Dashboard</Link>
+                      <Link to="/leaderboard" className="flex items-center px-3 sm:px-4 py-2 sm:py-3 hover:bg-blue-50 font-semibold text-sm sm:text-base"><Trophy className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Leaderboard</Link>
+                      {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
+                        <Link to="/addtask" className="flex items-center px-3 sm:px-4 py-2 sm:py-3 hover:bg-pink-50 font-semibold text-sm sm:text-base"><User className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Add Task</Link>
+                      )}
+                      <button onClick={handleLogout} className="flex items-center px-3 sm:px-4 py-2 sm:py-3 w-full text-left hover:bg-red-50 font-semibold text-sm sm:text-base"><LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Logout</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </header>
 
           {/* Edit Profile Modal */}
           {showEditProfileModal && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md p-4 sm:p-6 max-h-screen overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-bold">Edit Profile</h3>
-                  <button onClick={() => setShowEditProfileModal(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+                  <button onClick={() => setShowEditProfileModal(false)} className="text-gray-500 hover:text-gray-700 p-1">
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border rounded-md" />
+                    <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 sm:p-3 border rounded-md text-sm sm:text-base" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                       <input type="file" id="profileUploadModal" accept="image/*" onChange={handleProfileChange} className="hidden" />
-                      <label htmlFor="profileUploadModal" className="px-3 py-2 bg-blue-50 font-bold border rounded-md cursor-pointer">Choose Image</label>
+                      <label htmlFor="profileUploadModal" className="px-3 py-2 bg-blue-50 font-bold border rounded-md cursor-pointer text-sm sm:text-base whitespace-nowrap">Choose Image</label>
                       {profilePic && (
-                        <button onClick={handleRemoveProfile} className="px-3 py-1 bg-red-500 text-white rounded-md">Remove</button>
+                        <button onClick={handleRemoveProfile} className="px-3 py-2 bg-red-500 text-white rounded-md text-sm sm:text-base">Remove</button>
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-2">
-                    <button onClick={() => setShowEditProfileModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-2">
+                    <button onClick={() => setShowEditProfileModal(false)} className="px-4 py-2 rounded-md border text-sm sm:text-base order-2 sm:order-1">Cancel</button>
                     <button
                       onClick={async () => {
                         try {
@@ -543,7 +545,7 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
                           setShowEditProfileModal(false);
                         }
                       }}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm sm:text-base order-1 sm:order-2"
                     >
                       Save
                     </button>
@@ -554,9 +556,9 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
           )}
 
           {/* Task Board */}
-          <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
-            <h2 className="text-3xl font-extrabold text-gray-800 mb-6">Task Board ✏️</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="p-3 sm:p-4 md:p-6 bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 mx-2 sm:mx-0">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-4 sm:mb-6">Task Board ✏️</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {tasks.length > 0 ? tasks.map(task => (
                 <TaskCard
                   key={task.id}
@@ -565,29 +567,29 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
                   onRemoveTask={handleRemoveTask}
                   currentUser={currentUserData}
                 />
-              )) : <p className="text-gray-500 col-span-full text-center">No tasks yet. Council can add tasks!</p>}
+              )) : <p className="text-gray-500 col-span-full text-center">No tasks yet. Mentor can add tasks!</p>}
             </div>
           </div>
 
           {/* Logout Confirmation Modal */}
           {showLogoutConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all">
-                <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-                  <LogOut className="w-6 h-6 text-red-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-sm sm:max-w-md p-4 sm:p-6 transform transition-all">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 mx-auto bg-red-100 rounded-full mb-4">
+                  <LogOut className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
                 <h3 className="text-lg font-bold text-center text-gray-900 mb-2">Logout</h3>
-                <p className="text-gray-600 text-center mb-6">Are you sure you want to logout? You will be returned to the login page.</p>
-                <div className="flex gap-3 justify-center">
+                <p className="text-sm sm:text-base text-gray-600 text-center mb-6">Are you sure you want to logout? You will be returned to the login page.</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={() => setShowLogoutConfirm(false)}
-                    className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition"
+                    className="px-4 sm:px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition text-sm sm:text-base order-2 sm:order-1"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={confirmLogout}
-                    className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+                    className="px-4 sm:px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition text-sm sm:text-base order-1 sm:order-2"
                   >
                     Logout
                   </button>
