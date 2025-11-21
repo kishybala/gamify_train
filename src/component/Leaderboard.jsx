@@ -183,8 +183,8 @@ export default function Leaderboard() {
     return name.toLowerCase().includes(searchLower);
   });
 
-  // Get Top 3 users for podium
-  const topThreeUsers = filteredUsers.slice(0, 3);
+  // Get Top 3 users for podium - only show users with points > 0
+  const topThreeUsers = filteredUsers.filter(user => user.points > 0).slice(0, 3);
 
   return (
     <div className="min-h-screen font-inter bg-gray-50">
@@ -228,14 +228,7 @@ export default function Leaderboard() {
           
             currentUserData.role === 'Mentor' ? (
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setTimePeriod('monthly')}
-                  className={`px-3 py-2 rounded-full border ${timePeriod === 'monthly' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-                >Monthly</button>
-                <button
-                  onClick={() => setTimePeriod('all')}
-                  className={`px-3 py-2 rounded-full border ${timePeriod === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
-                >All time</button>
+               
               </div>
             ) : (
               <div className="flex items-center bg-yellow-100 text-yellow-800 font-bold px-4 py-2 rounded-full shadow-md hover:scale-105 transition">
