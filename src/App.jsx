@@ -9,7 +9,6 @@ import SignupPage from './component/signup';
 import Dashboard from './component/dashboard';
 import Leaderboard from './component/Leaderboard';
 import AddTask from './component/Addtask';
-import Badge from './component/badges.jsx';
 import Pointer from "./component/point";
 import MentorDashboard from './component/mentordash';
 import UserProfile from './component/UserProfile';
@@ -93,15 +92,7 @@ export default function App() {
         />
         <Route
           path="/addtask"
-          element={
-            (currentUser.role === "Council" || currentUser.role === "Mentor") 
-              ? <AddTask currentUser={currentUser} tasks={tasks} setTasks={setTasks} />
-              : <Dashboard tasks={tasks} setTasks={setTasks} currentUser={currentUser} />
-          }
-        />
-        <Route
-          path="/badges"
-          element={<Badge currentUser={currentUser} />}
+          element={<AddTask currentUser={currentUser} tasks={tasks} setTasks={setTasks} />}
         />
         <Route
           path="/Point"
