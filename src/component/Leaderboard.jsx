@@ -58,6 +58,24 @@ export default function Leaderboard() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         navigate("/");
+      } else {
+        // Fetch user's profile picture from Firestore
+        const fetchProfilePic = async () => {
+          try {
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists() && userDoc.data().profilePic) {
+              setProfilePic(userDoc.data().profilePic);
+              localStorage.setItem("profilePic", userDoc.data().profilePic);
+            } else {
+              setProfilePic(null);
+              localStorage.removeItem("profilePic");
+            }
+          } catch (error) {
+            console.error("Error fetching profile picture:", error);
+          }
+        };
+        fetchProfilePic();
       }
     });
 

@@ -21,7 +21,7 @@ const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_
 
 
 // Mentor Dashboard Header Component
-const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout }) => {
+const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEditProfile }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   
   // Helper to produce a display name: prefer `name`, then derive from email local-part
@@ -44,12 +44,13 @@ const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout }) =>
             alt="Profile"
             className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
           />
-          <label
-            htmlFor="profileUpload"
-            className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs"
+          <button
+            onClick={() => onEditProfile()}
+            className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs hover:bg-blue-600 transition"
+            title="Edit profile"
           >
             ✏️
-          </label>
+          </button>
           <input
             type="file"
             id="profileUpload"
@@ -1244,6 +1245,8 @@ const App = () => {
     const [isAnimating, setIsAnimating] = useState(false);
     const [animationStudent, setAnimationStudent] = useState(null);
     const [effectKey, setEffectKey] = useState(0);
+    const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+    const [editName, setEditName] = useState("");
 
     // Debug selectedStudent changes
     useEffect(() => {
@@ -1313,6 +1316,10 @@ const App = () => {
                 profilePic={profilePic}
                 onProfileChange={handleProfileChange}
                 onLogout={handleLogout}
+                onEditProfile={() => {
+                  setEditName(currentUser?.name || "");
+                  setShowEditProfileModal(true);
+                }}
             />
 
             <NotificationToast notification={notification} setNotification={setNotification} />
@@ -1398,6 +1405,70 @@ const App = () => {
                         );
                     })()}
                 </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {showEditProfileModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold">Edit Profile</h3>
+                    <button onClick={() => setShowEditProfileModal(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border rounded-md" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+                      <div className="flex items-center gap-3">
+                        <input type="file" id="profileUploadModal" accept="image/*" onChange={handleProfileChange} className="hidden" />
+                        <label htmlFor="profileUploadModal" className="px-3 py-2 bg-blue-50 font-bold border rounded-md cursor-pointer">Choose Image</label>
+                        {profilePic && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const userRef = doc(db, 'users', currentUser.id);
+                                await updateDoc(userRef, { profilePic: "" });
+                                localStorage.removeItem("profilePic");
+                                window.location.reload();
+                              } catch (error) {
+                                console.error("Error removing profile picture:", error);
+                              }
+                            }}
+                            className="px-3 py-1 bg-red-500 text-white rounded-md"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <button onClick={() => setShowEditProfileModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const updated = { ...currentUser, name: editName };
+                            localStorage.setItem('currentUser', JSON.stringify(updated));
+                            if (currentUser.id && db) {
+                              const userRef = doc(db, 'users', currentUser.id);
+                              await updateDoc(userRef, { name: editName });
+                            }
+                            setShowEditProfileModal(false);
+                            window.location.reload();
+                          } catch (err) {
+                            console.error('Error saving profile changes:', err);
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
         </div>
     );

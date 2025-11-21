@@ -308,6 +308,15 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
           console.log("Mentor Dashboard - Updated User Data:", updatedUser);
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUserData(updatedUser);
+          
+          // Fetch user's profile picture from Firestore
+          if (userData.profilePic) {
+            setProfilePic(userData.profilePic);
+            localStorage.setItem("profilePic", userData.profilePic);
+          } else {
+            setProfilePic(null);
+            localStorage.removeItem("profilePic");
+          }
         }
       }
     });
