@@ -256,21 +256,34 @@ const useAuthUser = () => {
 
   return { currentUser, profilePic, handleProfileChange, handleLogout };
 };
-const generatePlaceholderUrl = (name = "", userId = null) => {
-    // First check if user has uploaded profile image in localStorage for this userId
+const generatePlaceholderUrl = (name = "", userId = null, profilePic = null) => {
+    // First priority: Check if profilePic is directly provided (from Firestore/student object)
+    if (profilePic && profilePic.trim() && 
+        (profilePic.startsWith('http') || profilePic.startsWith('data:')) && 
+        !profilePic.includes('ui-avatars.com')) {
+        return profilePic;
+    }
+
+    // Second: Check if user has uploaded profile image in localStorage for this userId
     if (userId) {
         const userProfileKey = `profilePic_${userId}`;
         const savedProfilePic = localStorage.getItem(userProfileKey);
-        if (savedProfilePic) {
+        if (savedProfilePic && savedProfilePic.trim() && 
+            (savedProfilePic.startsWith('http') || savedProfilePic.startsWith('data:')) && 
+            !savedProfilePic.includes('ui-avatars.com')) {
             return savedProfilePic;
         }
     }
 
-    // Check for general profile picture by name
-    const generalProfileKey = `profile_${name}`;
-    const generalProfilePic = localStorage.getItem(generalProfileKey);
-    if (generalProfilePic) {
-        return generalProfilePic;
+    // Third: Check for student-specific profile picture by name
+    if (name) {
+        const nameProfileKey = `profile_${name}`;
+        const nameProfilePic = localStorage.getItem(nameProfileKey);
+        if (nameProfilePic && nameProfilePic.trim() && 
+            (nameProfilePic.startsWith('http') || nameProfilePic.startsWith('data:')) && 
+            !nameProfilePic.includes('ui-avatars.com')) {
+            return nameProfilePic;
+        }
     }
 
     // Fallback: generate an initials-based placeholder with a stable color
@@ -354,7 +367,25 @@ const useStudents = (db, isAuthReady) => {
 
         const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
             const studentList = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }))
+                .map(doc => {
+                    const data = doc.data();
+                    
+                    // If student doesn't have profile pic, add a demo one based on their name
+                    if (!data.profilePic || data.profilePic.includes('ui-avatars.com')) {
+                        // Add demo profile pictures for students who don't have one
+                        const demoImages = {
+                            'shikha': 'data:image/jpeg;base64,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',
+                            'ruchi': 'https://images.unsplash.com/photo-1494790108755-2616b612b5bb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80'
+                        };
+                        
+                        const studentName = data.name ? data.name.toLowerCase() : '';
+                        if (demoImages[studentName]) {
+                            data.profilePic = demoImages[studentName];
+                        }
+                    }
+                    
+                    return { id: doc.id, ...data, transactions: data.transactions || [] };
+                })
                 .filter(user => user.role !== "Mentor"); // Filter out mentors from points section
 
             // Points ke hisaab se sort karein
@@ -829,6 +860,9 @@ const PointGiver = ({ db, student, adminId, onClose, setNotification, setStudent
                 transactions: [...(currentData.transactions || []), newTransaction],
             }, { merge: true });
 
+            // Update localStorage so student dashboard shows updated points immediately
+            localStorage.setItem(`userPoints_${student.id}`, newTotalPoints.toString());
+
             // Instant local UI update (important for smooth feel)
             setStudents(prev => {
                 console.log('Updating student list after point assignment');
@@ -1075,9 +1109,27 @@ const StudentDetail = ({ student, onClose, db, adminId, setNotification, student
                 <div className="flex justify-between items-start">
                     <div className="flex items-center space-x-4">
                         <img
-                            src={generatePlaceholderUrl(student.name, student.id)}
+                            src={generatePlaceholderUrl(student.name, student.id, student.profilePic || student.profileImageUrl)}
                             alt={`${student.name} profile`}
                             className="w-16 h-16 rounded-2xl object-cover border-3 border-white shadow-lg"
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                // Try student-specific localStorage keys before falling back
+                                const fallbacks = [
+                                    localStorage.getItem(`profilePic_${student.id}`),
+                                    localStorage.getItem(`profile_${student.name}`),
+                                    localStorage.getItem(`${student.name}_profilePic`),
+                                    student.profileImageUrl,
+                                    student.profilePic
+                                ];
+                                for (const src of fallbacks) {
+                                    if (src && src.trim() && (src.startsWith('http') || src.startsWith('data:')) && !src.includes('ui-avatars.com')) {
+                                        e.target.src = src;
+                                        return;
+                                    }
+                                }
+                                e.target.src = generatePlaceholderUrl(student.name, student.id, student.profilePic || student.profileImageUrl);
+                            }}
                         />
                         <div>
                             <h2 className="text-2xl font-bold text-gray-800">{student.name}'s Profile</h2>
@@ -1232,9 +1284,27 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
                 <div className="flex items-center space-x-3">
                     <div className="relative">
                         <img
-                            src={generatePlaceholderUrl(student.name, student.id)}
+                            src={generatePlaceholderUrl(student.name, student.id, student.profilePic || student.profileImageUrl)}
                             alt={`${student.name} profile`}
                             className="w-16 h-16 rounded-2xl object-cover border-3 border-white shadow-lg"
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                // Try student-specific localStorage keys before falling back
+                                const fallbacks = [
+                                    localStorage.getItem(`profilePic_${student.id}`),
+                                    localStorage.getItem(`profile_${student.name}`),
+                                    localStorage.getItem(`${student.name}_profilePic`),
+                                    student.profileImageUrl,
+                                    student.profilePic
+                                ];
+                                for (const src of fallbacks) {
+                                    if (src && src.trim() && (src.startsWith('http') || src.startsWith('data:')) && !src.includes('ui-avatars.com')) {
+                                        e.target.src = src;
+                                        return;
+                                    }
+                                }
+                                e.target.src = generatePlaceholderUrl(student.name, student.id, student.profilePic || student.profileImageUrl);
+                            }}
                         />
                         {student.rank === 1 && (
                             <div className="absolute -top-2 -right-2 bg-yellow-400 rounded-full p-1 shadow-lg">
@@ -1298,6 +1368,25 @@ const App = () => {
     useEffect(() => {
         console.log('selectedStudent changed:', selectedStudent?.name || 'null');
     }, [selectedStudent]);
+
+    // Listen for profile picture updates from other components
+    useEffect(() => {
+        const handleProfileUpdate = (event) => {
+            const { userId, userName, profilePic } = event.detail;
+            
+            // Update students list with new profile picture
+            setStudents(prev => prev.map(student => 
+                student.id === userId || student.name === userName
+                    ? { ...student, profilePic: profilePic }
+                    : student
+            ));
+        };
+
+        window.addEventListener('profilePictureUpdated', handleProfileUpdate);
+        return () => {
+            window.removeEventListener('profilePictureUpdated', handleProfileUpdate);
+        };
+    }, [setStudents]);
 
     // Handle click to start the sequenced animation
     const handleStudentClick = useCallback((student) => {

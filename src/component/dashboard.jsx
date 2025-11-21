@@ -124,6 +124,11 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
 
         if (docSnap.exists()) {
           const userData = docSnap.data();
+          
+          // Check localStorage for updated points (from mentor giving points)
+          const localStoragePoints = localStorage.getItem(`userPoints_${user.uid}`);
+          const currentPoints = localStoragePoints ? parseInt(localStoragePoints) : (userData.totalPoints || userData.points || 0);
+          
           // Helper function to extract first name from email
           const extractFirstName = (displayName, email) => {
             if (displayName && displayName.trim()) {
