@@ -21,12 +21,61 @@ export default function Leaderboard() {
 
   // Helper function to get profile image with fallback logic
   const getProfileImage = (user) => {
-    // For current user, prioritize localStorage
-    if (user.id === currentUserData.id) {
-      return localStorage.getItem("profilePic") || user.profilePic || "https://via.placeholder.com/100";
+    if (!user) return generateInitialsAvatar("User");
+    
+    // First priority: Check if user has profilePic from Firestore
+    if (user.profilePic && user.profilePic.trim() && 
+        (user.profilePic.startsWith('http') || user.profilePic.startsWith('data:')) && 
+        !user.profilePic.includes('ui-avatars.com')) {
+      return user.profilePic;
     }
-    // For other users, use their database profilePic
-    return user.profilePic || "https://via.placeholder.com/100";
+    
+    // For current user, check localStorage (but avoid general 'profilePic' for students)
+    if (user.id === currentUserData.id) {
+      const currentUserPic = localStorage.getItem("profilePic");
+      if (currentUserPic && (currentUserPic.startsWith('http') || currentUserPic.startsWith('data:'))) {
+        return currentUserPic;
+      }
+    }
+    
+    // Check user-specific localStorage by userId
+    if (user.id) {
+      const userSpecificPic = localStorage.getItem(`profilePic_${user.id}`);
+      if (userSpecificPic && (userSpecificPic.startsWith('http') || userSpecificPic.startsWith('data:'))) {
+        return userSpecificPic;
+      }
+    }
+    
+    // Check by name-based keys
+    if (user.name) {
+      const nameProfileKey = localStorage.getItem(`profile_${user.name}`);
+      if (nameProfileKey && (nameProfileKey.startsWith('http') || nameProfileKey.startsWith('data:'))) {
+        return nameProfileKey;
+      }
+      
+      const generalKey = localStorage.getItem(`${user.name}_profilePic`);
+      if (generalKey && (generalKey.startsWith('http') || generalKey.startsWith('data:'))) {
+        return generalKey;
+      }
+    }
+    
+    // Generate initials-based placeholder
+    return generateInitialsAvatar(user.name || 'User');
+  };
+
+  // Function to generate initials avatar
+  const generateInitialsAvatar = (name) => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+    const hexColor = "000000".substring(0, 6 - color.length) + color;
+    
+    let initials = name.split(' ').map(n => n.charAt(0)).join('').substring(0, 2).toUpperCase();
+    if (initials.length === 0) initials = 'U';
+    
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${hexColor}&color=ffffff&size=100&format=svg`;
   };
   const [timePeriod, setTimePeriod] = useState("monthly");
 
@@ -51,6 +100,25 @@ export default function Leaderboard() {
     };
 
     fetchUsers();
+  }, []);
+
+  // Listen for profile picture updates from other components
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      const { userId, userName, profilePic } = event.detail;
+      
+      // Update users list with new profile picture
+      setUsers(prev => prev.map(user => 
+        user.id === userId || user.name === userName
+          ? { ...user, profilePic: profilePic }
+          : user
+      ));
+    };
+
+    window.addEventListener('profilePictureUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profilePictureUpdated', handleProfileUpdate);
+    };
   }, []);
 
   // Auth listener

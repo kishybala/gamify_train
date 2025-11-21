@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, LogOut, Home, User as UserIcon, Zap, ArrowLeft, Calendar, Mail, MapPin, Star, Users, Lightbulb, Crown, Activity } from 'lucide-react';
 import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function UserProfile() {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -40,6 +40,66 @@ export default function UserProfile() {
     });
 
     return categories;
+  };
+
+  // Handle profile picture change
+  const handleProfilePictureChange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const imageDataUrl = e.target.result;
+        
+        try {
+          // Update localStorage with multiple keys for compatibility with all components
+          localStorage.setItem(`profilePic_${currentUserData.id}`, imageDataUrl);
+          localStorage.setItem(`profile_${currentUserData.name}`, imageDataUrl);
+          localStorage.setItem(`${currentUserData.name}_profilePic`, imageDataUrl);
+          
+          // Also update general profilePic for current user (mentor compatibility)
+          if (currentUserData.role === 'Mentor') {
+            localStorage.setItem("profilePic", imageDataUrl);
+          }
+          
+          // Update Firestore database
+          const userRef = doc(db, "users", currentUserData.id);
+          await updateDoc(userRef, {
+            profilePic: imageDataUrl
+          });
+          
+          // Update selectedUser state to reflect changes immediately
+          setSelectedUser(prev => ({
+            ...prev,
+            profilePic: imageDataUrl
+          }));
+          
+          // Update currentUserData in localStorage
+          const updatedUserData = {
+            ...currentUserData,
+            profilePic: imageDataUrl
+          };
+          localStorage.setItem("currentUser", JSON.stringify(updatedUserData));
+          setCurrentUserData(updatedUserData);
+          
+          console.log("Profile picture updated successfully!");
+          
+          // Broadcast profile picture change event to other components
+          window.dispatchEvent(new CustomEvent('profilePictureUpdated', {
+            detail: {
+              userId: currentUserData.id,
+              userName: currentUserData.name,
+              profilePic: imageDataUrl
+            }
+          }));
+          
+          alert("Profile picture updated! Changes will appear across all pages.");
+        } catch (error) {
+          console.error("Error updating profile picture:", error);
+          alert("Failed to update profile picture. Please try again.");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   useEffect(() => {
@@ -125,9 +185,32 @@ export default function UserProfile() {
                   alt="Profile" 
                   className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-xl"
                 />
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-white" />
-                </div>
+                
+                {/* Edit button - only show for current user */}
+                {selectedUser.id === currentUserData.id && (
+                  <div className="absolute -bottom-2 -right-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureChange}
+                      className="hidden"
+                      id="profile-pic-input"
+                    />
+                    <label
+                      htmlFor="profile-pic-input"
+                      className="w-10 h-10 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-colors"
+                    >
+                      <UserIcon className="w-5 h-5 text-white" />
+                    </label>
+                  </div>
+                )}
+                
+                {/* Trophy badge for others */}
+                {selectedUser.id !== currentUserData.id && (
+                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <Trophy className="w-5 h-5 text-white" />
+                  </div>
+                )}
               </div>
               
               {/* Basic Info */}
