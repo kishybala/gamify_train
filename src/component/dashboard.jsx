@@ -147,6 +147,15 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
           };
           localStorage.setItem("currentUser", JSON.stringify(updatedUser));
           setCurrentUserData(updatedUser);
+          
+          // Fetch user's profile picture from Firestore
+          if (userData.profilePic) {
+            setProfilePic(userData.profilePic);
+            localStorage.setItem("profilePic", userData.profilePic);
+          } else {
+            setProfilePic(null);
+            localStorage.removeItem("profilePic");
+          }
         }
       }
     });
