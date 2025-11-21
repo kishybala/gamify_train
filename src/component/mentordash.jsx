@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, orderBy } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, orderBy, addDoc, deleteDoc } from "firebase/firestore";
 
 // --- Student Profile Modal Component ---
 const StudentProfileModal = ({ studentName, isOpen, onClose, onStudentSelect }) => {
@@ -210,9 +210,9 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
           ></div>
         </div>
 
-        {/* ✅ Enhanced Volunteers List with better display */}
+        {/* ✅ Enhanced Hand Raised Display */}
         <div className="text-xs text-gray-500 mb-5">
-          <span className="font-bold text-gray-700">Volunteers:</span>{" "}
+          <span className="font-bold text-gray-700">🙋‍♂️ Hand Raised:</span>{" "}
           {displayedVolunteers && displayedVolunteers.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {displayedVolunteers.map((volunteer, index) => {
@@ -224,21 +224,26 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
                   <button
                     key={`${task.id}-volunteer-${index}-${volunteerName}`}
                     onClick={() => onStudentClick(volunteerName)}
-                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer"
-                    title={`Click to view ${volunteerName}'s profile`}
+                    className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer border-2 border-green-300 shadow-sm"
+                    title={`${volunteerName} raised hand! Click to view profile`}
                   >
-                    {volunteerName}
+                    🙋‍♂️ {volunteerName}
                   </button>
                 );
               })}
-              {/* ✅ Show count for debugging */}
-              <span className="text-xs text-gray-400 ml-2">
-                ({displayedVolunteers.length}/{requiredMembers})
+              {/* ✅ Show status */}
+              <span className="text-xs text-green-600 ml-2 font-semibold">
+                ({displayedVolunteers.length}/{requiredMembers} raised)
+                {displayedVolunteers.length >= requiredMembers && (
+                  <span className="ml-2 text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">
+                    ✅ Complete
+                  </span>
+                )}
               </span>
             </div>
           ) : (
             <span className="text-gray-400 italic">
-              None yet ({volunteers.length}/{requiredMembers})
+              No hands raised yet (0/{requiredMembers})
             </span>
           )}
         </div>
@@ -324,6 +329,51 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     });
     return () => unsubscribe();
   }, []);
+
+  // ✅ Fetch tasks from Firebase on component mount
+  useEffect(() => {
+    const fetchTasksFromFirebase = async () => {
+      try {
+        const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(tasksQuery);
+        const firebaseTasks = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate ? doc.data().createdAt.toDate() : new Date()
+        }));
+        
+        // Normalize Firebase tasks
+        const normalizedTasks = firebaseTasks.map(task => ({
+          ...task,
+          volunteersList: Array.isArray(task.volunteersList) ? task.volunteersList : [],
+          status: task.status || "Ready",
+          required: task.required || 1
+        }));
+        
+        setTasks(normalizedTasks);
+        // Also update localStorage with Firebase data for sync
+        localStorage.setItem("dashboardTasks", JSON.stringify(normalizedTasks));
+        console.log("✅ Tasks loaded from Firebase:", normalizedTasks.length);
+      } catch (error) {
+        console.error("❌ Error fetching tasks from Firebase:", error);
+        // Fallback to localStorage if Firebase fails
+        const storedTasks = localStorage.getItem("dashboardTasks");
+        if (storedTasks) {
+          try {
+            const parsedTasks = JSON.parse(storedTasks);
+            setTasks(parsedTasks);
+          } catch (parseError) {
+            console.error("Error parsing localStorage tasks:", parseError);
+            setTasks([]);
+          }
+        } else {
+          setTasks([]);
+        }
+      }
+    };
+
+    fetchTasksFromFirebase();
+  }, []); // Run once on component mount
 
   // ✅ Force load tasks from localStorage on component mount (for page refresh)
   useEffect(() => {
@@ -437,40 +487,34 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     }
   }, [tasks, setTasks]);
 
-  const handleRemoveTask = (taskId) => {
+  const handleRemoveTask = async (taskId) => {
     // Show confirmation dialog
     const confirmDelete = window.confirm("Are you sure you want to delete this task? This will remove it from all students' dashboards as well.");
     
     if (confirmDelete) {
-      const updatedTasks = tasks.filter((task) => task.id !== taskId);
-      
-      // Update state first
-      setTasks(updatedTasks);
-      
-      // Then update localStorage with retry mechanism
       try {
+        // Delete from Firebase first
+        await deleteDoc(doc(db, "tasks", taskId));
+        
+        // Update local state
+        const updatedTasks = tasks.filter((task) => task.id !== taskId);
+        setTasks(updatedTasks);
+        
+        // Update localStorage
         localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-        console.log("Task deleted and localStorage updated:", taskId);
+        
+        // Trigger storage event to sync with other tabs/windows
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'dashboardTasks',
+          newValue: JSON.stringify(updatedTasks),
+          oldValue: JSON.stringify(tasks)
+        }));
+        
+        console.log("Task permanently deleted from Firebase and localStorage:", taskId);
       } catch (error) {
-        console.error("Error updating localStorage:", error);
-        // Retry once
-        setTimeout(() => {
-          try {
-            localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-          } catch (retryError) {
-            console.error("Retry failed:", retryError);
-          }
-        }, 100);
+        console.error("Error deleting task from Firebase:", error);
+        alert("Failed to delete task. Please try again.");
       }
-      
-      // Trigger storage event to sync with other tabs/windows
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: 'dashboardTasks',
-        newValue: JSON.stringify(updatedTasks),
-        oldValue: JSON.stringify(tasks)
-      }));
-      
-      console.log("Task permanently deleted:", taskId);
     }
   };
 
@@ -816,24 +860,42 @@ export function AddTask({ tasks, setTasks }) {
   const [required, setRequired] = React.useState(1);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newTask = {
-      id: Date.now(),
-      title,
-      desc,
-      category,
-      assignedTo,
-      points,
-      required: Number(required),
-      volunteersList: [],
-      status: "Ready",
-      deadline: null,
-    };
-    const updatedTasks = [...tasks, newTask];
-    setTasks(updatedTasks);
-    localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
-    navigate("/mentor-dashboard"); // redirect to Mentor Dashboard
+    try {
+      const newTask = {
+        title,
+        desc,
+        category,
+        assignedTo,
+        points,
+        required: Number(required),
+        volunteersList: [],
+        status: "Ready",
+        deadline: null,
+        createdAt: new Date(),
+        createdBy: JSON.parse(localStorage.getItem("currentUser"))?.id || "unknown"
+      };
+      
+      // Add to Firebase first
+      const docRef = await addDoc(collection(db, "tasks"), newTask);
+      
+      // Add the Firebase ID to the task
+      const taskWithId = { id: docRef.id, ...newTask };
+      
+      // Update local state
+      const updatedTasks = [...tasks, taskWithId];
+      setTasks(updatedTasks);
+      
+      // Also update localStorage for backup
+      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+      
+      console.log("Task successfully saved to Firebase:", docRef.id);
+      navigate("/mentor-dashboard"); // redirect to Mentor Dashboard
+    } catch (error) {
+      console.error("Error adding task to Firebase:", error);
+      alert("Failed to save task. Please try again.");
+    }
   };
 
   return (
