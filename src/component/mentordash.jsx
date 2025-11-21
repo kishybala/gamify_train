@@ -161,19 +161,19 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
   const displayedVolunteers = volunteers.slice(0, requiredMembers);
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
+    <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
       <button
         onClick={() => onRemoveTask(task.id)}
         className="absolute top-2 right-2 text-red-500 hover:text-red-700"
         title="Remove Task"
       >
-        <Trash2 className="w-5 h-5" />
+        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
       </button>
 
       <div>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-xl font-extrabold text-gray-800">{task.title}</h3>
-          <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 space-y-2 sm:space-y-0">
+          <h3 className="text-lg sm:text-xl font-extrabold text-gray-800 pr-8 sm:pr-0">{task.title}</h3>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
               {task.category}
             </span>
@@ -602,52 +602,53 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
 
   return (
     <div className="min-h-screen font-inter bg-gray-50">
-      <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center transform transition-all hover:shadow-2xl duration-300">
-        <div className="flex items-center space-x-4">
-          <div className="relative w-30 h-30">
-            <img
-              src={profilePic || "https://via.placeholder.com/90"}
-              alt="Profile"
-              className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
-            />
-            <button
-              onClick={() => {
-                const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                setEditName(stored.name || currentUserData.name || '');
-                setShowEditProfileModal(true);
-              }}
-              className="absolute bottom-0 right-0 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-sm hover:bg-blue-600 transition"
-              title="Edit profile"
-            >
-              ✏️
-            </button>
-            <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-gray-800">
-              Welcome, <span className="text-blue-600">{getDisplayName(currentUserData)}</span>!
+      <header className="bg-white p-3 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 mb-4 sm:mb-6 mx-2 sm:mx-0">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="relative">
+              <img
+                src={profilePic || "https://via.placeholder.com/90"}
+                alt="Profile"
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
+              />
+              <button
+                onClick={() => {
+                  const stored = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                  setEditName(stored.name || currentUserData.name || '');
+                  setShowEditProfileModal(true);
+                }}
+                className="absolute -bottom-1 -right-1 bg-blue-500 text-white w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center cursor-pointer text-xs sm:text-sm hover:bg-blue-600 transition"
+                title="Edit profile"
+              >
+                ✏️
+              </button>
+              <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
             </div>
-            <span className="text-sm text-gray-500">({currentUserData.role})</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-lg sm:text-xl md:text-xl font-bold text-gray-800 truncate">
+                Welcome, <span className="text-blue-600">{getDisplayName(currentUserData)}</span>!
+              </div>
+              <span className="text-xs sm:text-sm text-gray-500">({currentUserData.role})</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Mentor List Button */}
-          <button
-            onClick={() => setShowMentorList(!showMentorList)}
-            className="flex items-center text-gray-600 hover:text-purple-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
-            title="View All Mentors"
-          >
-            <Users className="w-6 h-6" />
-          </button>
-
-          {/* Menu */}
-          <div className="relative">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Mentor List Button */}
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center text-gray-600 hover:text-blue-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+              onClick={() => setShowMentorList(!showMentorList)}
+              className="flex items-center text-gray-600 hover:text-purple-500 transition duration-150 p-1.5 sm:p-2 rounded-full hover:bg-gray-100"
+              title="View All Mentors"
             >
-              <Menu className="w-6 h-6" />
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+
+            {/* Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center text-gray-600 hover:text-blue-500 transition duration-150 p-1.5 sm:p-2 rounded-full hover:bg-gray-100"
+              >
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
             {menuOpen && (
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
@@ -688,8 +689,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
               </div>
             )}
           </div>
-
-          
+          </div>
         </div>
       </header>
 
@@ -745,11 +745,11 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
       )}
 
       {/* Task Board */}
-      <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
-        <h2 className="text-3xl font-extrabold text-gray-800 mb-6">
+      <div className="p-3 sm:p-4 md:p-6 bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 mx-2 sm:mx-0">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800 mb-4 sm:mb-6">
           All Tasks 📋
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {tasks.length > 0 ? (
             tasks.map((task) => (
               <TaskCard
@@ -780,9 +780,9 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-3 sm:p-4 md:p-6">
               {mentors.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                   {mentors.map((mentor) => (
                     <div key={mentor.id} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200 hover:shadow-lg transition-all duration-200">
                       <div className="text-center mb-4">
