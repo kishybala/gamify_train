@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link } from "react-router-dom";
 import {
-    Trophy,
-    LogOut,
+  Trophy,
+  Award,
+  LogOut,
   Users,
   Home,
   User,
   Zap,
   Menu,
+  Bell,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -23,6 +25,8 @@ const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_
 // Mentor Dashboard Header Component
 const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEditProfile }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [bellOpen, setBellOpen] = useState(false);
   
   // Helper to produce a display name: prefer `name`, then derive from email local-part
   const getDisplayName = (user) => {
@@ -99,7 +103,13 @@ const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEd
               >
                 <Zap className="w-5 h-5 mr-2" /> Give Points
               </Link>
-                            {/* Badges removed per project requirement */}
+              <Link
+                to="/badges"
+                className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Award className="w-5 h-5 mr-2" /> Badges
+              </Link>
               <Link
                 to="/leaderboard"
                 className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold"
@@ -117,6 +127,42 @@ const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEd
           )}
         </div>
 
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            onClick={() => setBellOpen(!bellOpen)}
+            className="flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+          >
+            <Bell className="w-6 h-6" />
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                {notifications.length}
+              </span>
+            )}
+          </button>
+          {bellOpen && (
+            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+              <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
+              <div className="max-h-60 overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications
+                    .slice()
+                    .reverse()
+                    .map((n, index) => (
+                      <div
+                        key={index}
+                        className="px-4 py-2 text-sm border-b last:border-b-0"
+                      >
+                        {n.message}
+                      </div>
+                    ))
+                ) : (
+                  <p className="px-4 py-2 text-gray-500">No notifications</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
