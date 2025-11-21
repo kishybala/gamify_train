@@ -255,6 +255,8 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
   const [selectedStudentName, setSelectedStudentName] = useState("");
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState("");
+  const [showMentorList, setShowMentorList] = useState(false);
+  const [mentors, setMentors] = useState([]);
   const navigate = useNavigate();
 
   // Helper to produce a display name: prefer `name`, then derive from email local-part
@@ -520,7 +522,28 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     }
   };
   
+  // Fetch all mentors
+  const fetchMentors = async () => {
+    try {
+      const mentorsQuery = query(collection(db, "users"), where("role", "==", "Mentor"));
+      const querySnapshot = await getDocs(mentorsQuery);
+      const mentorsList = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setMentors(mentorsList);
+    } catch (error) {
+      console.error("Error fetching mentors:", error);
+      setMentors([]);
+    }
+  };
 
+  // Fetch mentors when modal opens
+  useEffect(() => {
+    if (showMentorList) {
+      fetchMentors();
+    }
+  }, [showMentorList]);
 
   const handleLogout = async () => {
     try {
@@ -565,6 +588,15 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Mentor List Button */}
+          <button
+            onClick={() => setShowMentorList(!showMentorList)}
+            className="flex items-center text-gray-600 hover:text-purple-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+            title="View All Mentors"
+          >
+            <Users className="w-6 h-6" />
+          </button>
+
           {/* Menu */}
           <div className="relative">
             <button
@@ -690,6 +722,79 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
           )}
         </div>
       </div>
+
+      {/* Mentor List Modal */}
+      {showMentorList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-purple-500 to-indigo-600 p-6 text-white rounded-t-3xl">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">👥 All Mentors ({mentors.length})</h2>
+                <button onClick={() => setShowMentorList(false)} className="p-1 hover:bg-white/20 rounded-full transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {mentors.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {mentors.map((mentor) => (
+                    <div key={mentor.id} className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200 hover:shadow-lg transition-all duration-200">
+                      <div className="text-center mb-4">
+                        <div className="relative inline-block">
+                          <img 
+                            src={mentor.profilePic || "https://via.placeholder.com/80"} 
+                            alt="Mentor" 
+                            className="w-20 h-20 rounded-full object-cover border-4 border-purple-200 shadow-lg mx-auto" 
+                          />
+                          <div className="absolute -bottom-2 -right-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                            Mentor
+                          </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800 mt-3">{mentor.name || mentor.email?.split('@')[0] || 'Unknown'}</h3>
+                      </div>
+
+                      <div className="space-y-3">
+                        {mentor.email && (
+                          <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl">
+                            <div className="p-2 bg-purple-100 rounded-lg"><Mail className="w-4 h-4 text-purple-600" /></div>
+                            <div>
+                              <div className="font-medium text-gray-800 text-sm">Email</div>
+                              <div className="text-gray-600 text-sm truncate max-w-[200px]">{mentor.email}</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {mentor.createdAt && (
+                          <div className="flex items-center gap-3 p-3 bg-white/50 rounded-xl">
+                            <div className="p-2 bg-green-100 rounded-lg"><Calendar className="w-4 h-4 text-green-600" /></div>
+                            <div>
+                              <div className="font-medium text-gray-800 text-sm">Joined</div>
+                              <div className="text-gray-600 text-sm">
+                                {mentor.createdAt?.toDate ? 
+                                  mentor.createdAt.toDate().toLocaleDateString() : 
+                                  'Recently'
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">👥</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No Mentors Found</h3>
+                  <p className="text-gray-500">No mentors have signed up yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Student Profile Modal */}
       <StudentProfileModal
