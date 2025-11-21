@@ -10,10 +10,11 @@ import {
   Zap,
   Menu,
   Bell,
+  X,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, query, onSnapshot, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, onSnapshot, doc, setDoc, getDoc, updateDoc, where, getDocs } from 'firebase/firestore';
 
 // --- GLOBAL VARIABLES (Mandatory) ---
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -1363,6 +1364,7 @@ const App = () => {
     const [effectKey, setEffectKey] = useState(0);
     const [showEditProfileModal, setShowEditProfileModal] = useState(false);
     const [editName, setEditName] = useState("");
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     // Debug selectedStudent changes
     useEffect(() => {
@@ -1413,6 +1415,43 @@ const App = () => {
             setIsAnimating(false);
         }, 300);
     }, [isAnimating, selectedStudent]);
+
+    // Reset all student points function
+    const resetAllPoints = async () => {
+        try {
+            if (!db) return;
+            
+            // Get all students (excluding mentors)
+            const studentsQuery = query(collection(db, "users"), where("role", "!=", "Mentor"));
+            const studentsSnapshot = await getDocs(studentsQuery);
+            
+            const batch = [];
+            studentsSnapshot.docs.forEach((docSnapshot) => {
+                const studentRef = doc(db, "users", docSnapshot.id);
+                batch.push(updateDoc(studentRef, {
+                    points: 0,
+                    totalPoints: 0,
+                    transactions: []
+                }));
+            });
+
+            // Execute all updates
+            await Promise.all(batch);
+            
+            setNotification({
+                type: 'success',
+                message: `Successfully reset points for ${studentsSnapshot.docs.length} students!`
+            });
+            
+            setShowResetConfirm(false);
+        } catch (error) {
+            console.error("Error resetting points:", error);
+            setNotification({
+                type: 'error',
+                message: 'Failed to reset points. Please try again.'
+            });
+        }
+    };
 
     // Generate Admin's profile details
     const adminPlaceholderUrl = useMemo(() => userId ? generatePlaceholderUrl(userId) : 'https://ui-avatars.com/api/?name=?&background=cccccc&color=ffffff&size=40', [userId]);
@@ -1471,9 +1510,12 @@ const App = () => {
                                 </span>
                                 Students Enrolled
                             </h2>
-                            <div className="px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full border border-green-200">
-                                <span className="text-green-700 font-semibold text-sm">● Active Session</span>
-                            </div>
+                            <button
+                                onClick={() => setShowResetConfirm(true)}
+                                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-full border border-red-300 transition-all duration-200 font-semibold text-sm shadow-lg hover:shadow-xl transform hover:scale-105"
+                            >
+                                🔄 Reset All Points
+                            </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {students.map(student => (
@@ -1599,6 +1641,45 @@ const App = () => {
                         className="px-4 py-2 bg-blue-600 text-white rounded-md"
                       >
                         Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Reset Confirmation Modal */}
+            {showResetConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-red-600">⚠️ Reset All Points</h3>
+                    <button onClick={() => setShowResetConfirm(false)} className="text-gray-500 hover:text-gray-700">
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-red-800 font-semibold">Are you sure you want to reset all student points?</p>
+                      <p className="text-red-600 text-sm mt-2">This action will:</p>
+                      <ul className="text-red-600 text-sm mt-1 ml-4 list-disc">
+                        <li>Set all student points to 0</li>
+                        <li>Clear all transaction history</li>
+                        <li>Cannot be undone</li>
+                      </ul>
+                    </div>
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        onClick={() => setShowResetConfirm(false)}
+                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-semibold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={resetAllPoints}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
+                      >
+                        🔄 Reset All Points
                       </button>
                     </div>
                   </div>
