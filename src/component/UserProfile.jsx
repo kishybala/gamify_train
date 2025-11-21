@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User as UserIcon, Zap, ArrowLeft, Calendar, Mail, MapPin, Star, Users, Lightbulb, Crown, Activity } from 'lucide-react';
+import { Trophy, LogOut, Home, User as UserIcon, Zap, ArrowLeft, Calendar, Mail, MapPin, Star, Users, Lightbulb, Crown, Activity } from 'lucide-react';
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 

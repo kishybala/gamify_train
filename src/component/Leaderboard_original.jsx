@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { Trophy, Award, LogOut, Home, User, Zap, Menu } from 'lucide-react';
+import { Trophy, LogOut, Home, User, Zap, Menu } from 'lucide-react';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
 export default function Leaderboard() {
