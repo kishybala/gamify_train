@@ -41,8 +41,8 @@ export default function Leaderboard() {
         const usersList = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
-        }));
-        console.log("Users fetched:", usersList.length, "users");
+        })).filter(user => user.role !== "Mentor"); // Filter out mentors from leaderboard
+        console.log("Students fetched:", usersList.length, "users (mentors excluded)");
         setUsers(usersList);
       } catch (error) {
         console.error("Error fetching users: ", error);

@@ -307,7 +307,8 @@ const useStudents = (db, isAuthReady) => {
 
         const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
             const studentList = snapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }));
+                .map(doc => ({ id: doc.id, ...doc.data(), transactions: doc.data().transactions || [] }))
+                .filter(user => user.role !== "Mentor"); // Filter out mentors from points section
 
             // Points ke hisaab se sort karein
             studentList.sort((a, b) => b.totalPoints - a.totalPoints);
