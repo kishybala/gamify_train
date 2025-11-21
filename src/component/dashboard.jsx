@@ -316,8 +316,8 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
       {/* Profile animation */}
       {!showDashboard ? (
         <div className="flex flex-col items-center justify-center h-screen text-center relative">
-          <video autoPlay loop muted className="absolute inset-0 w-full h-full object-cover opacity-30">
-            <source src="https://www.w3schools.com/howto/rain.mp4" type="video/mp4" />
+          <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover opacity-30">
+            <source src="/s.mp4" type="video/mp4" />
           </video>
           <div className="relative z-10 flex flex-col items-center">
             <img
