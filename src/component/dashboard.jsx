@@ -11,8 +11,9 @@ import {
   User,
   Zap,
   Menu,
-  Trash2,
-  X
+  X,
+  Bell,
+  Trash2
 } from 'lucide-react';
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../firebase";
@@ -41,15 +42,7 @@ const TaskCard = ({ task, onToggleVolunteer, currentUser, onRemoveTask }) => {
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 flex flex-col justify-between h-full relative transform hover:scale-105 transition-all duration-300">
-      {(currentUser.role === "Council" || currentUser.role === "Mentor") && (
-        <button
-          onClick={() => onRemoveTask(task.id)}
-          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-          title="Remove Task"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
-      )}
+      {/* Delete button only for Council and Mentor, completely removed for students */}
 
       <div>
         <div className="flex justify-between items-center mb-3">
@@ -235,8 +228,25 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
       
       if (isConfirmed) {
         const updatedTasks = tasks.filter(task => task.id !== taskId);
+        
+        // Update state first
         setTasks(updatedTasks);
-        localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+        
+        // Then update localStorage with retry mechanism
+        try {
+          localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+          console.log("Task deleted and localStorage updated:", taskId);
+        } catch (error) {
+          console.error("Error updating localStorage:", error);
+          // Retry once
+          setTimeout(() => {
+            try {
+              localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+            } catch (retryError) {
+              console.error("Retry failed:", retryError);
+            }
+          }, 100);
+        }
         
         // Also trigger a storage event to sync with other tabs/windows
         window.dispatchEvent(new StorageEvent('storage', {
@@ -244,6 +254,8 @@ export default function Dashboard({ tasks, setTasks, currentUser }) {
           newValue: JSON.stringify(updatedTasks),
           oldValue: JSON.stringify(tasks)
         }));
+        
+        console.log("Task permanently deleted:", taskId);
       }
     } else {
       alert("You are not allowed to remove tasks.");

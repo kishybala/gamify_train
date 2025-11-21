@@ -140,15 +140,17 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
   // Use memberNumber as required if task.required is not set
   const requiredMembers = task.required || task.memberNumber || 1;
   
-  // Ensure volunteersList exists (for older tasks compatibility)
-  const volunteers = task.volunteersList || [];
+  // ✅ Ensure volunteersList exists and is an array (for older tasks compatibility)
+  const volunteers = Array.isArray(task.volunteersList) ? task.volunteersList : [];
   
-  // Debug log
-  console.log("TaskCard render:", {
+  // ✅ Enhanced debug log for volunteer tracking
+  console.log("🎯 TaskCard render:", {
+    taskId: task.id,
     taskTitle: task.title,
     volunteersList: volunteers,
     volunteersLength: volunteers.length,
-    requiredMembers
+    requiredMembers,
+    rawVolunteers: task.volunteersList
   });
   
   const progressPercent = Math.min(
@@ -209,23 +211,36 @@ const TaskCard = ({ task, onRemoveTask, onStudentClick }) => {
           ></div>
         </div>
 
-        {/* Volunteers List */}
+        {/* ✅ Enhanced Volunteers List with better display */}
         <div className="text-xs text-gray-500 mb-5">
           <span className="font-bold text-gray-700">Volunteers:</span>{" "}
-          {displayedVolunteers.length > 0 ? (
+          {displayedVolunteers && displayedVolunteers.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
-              {displayedVolunteers.map((volunteer, index) => (
-                <button
-                  key={index}
-                  onClick={() => onStudentClick(volunteer)}
-                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  {volunteer}
-                </button>
-              ))}
+              {displayedVolunteers.map((volunteer, index) => {
+                // ✅ Ensure volunteer is a string and not empty
+                const volunteerName = String(volunteer || "Unknown").trim();
+                if (!volunteerName || volunteerName === "Unknown") return null;
+                
+                return (
+                  <button
+                    key={`${task.id}-volunteer-${index}-${volunteerName}`}
+                    onClick={() => onStudentClick(volunteerName)}
+                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                    title={`Click to view ${volunteerName}'s profile`}
+                  >
+                    {volunteerName}
+                  </button>
+                );
+              })}
+              {/* ✅ Show count for debugging */}
+              <span className="text-xs text-gray-400 ml-2">
+                ({displayedVolunteers.length}/{requiredMembers})
+              </span>
             </div>
           ) : (
-            "None"
+            <span className="text-gray-400 italic">
+              None yet ({volunteers.length}/{requiredMembers})
+            </span>
           )}
         </div>
       </div>
@@ -300,6 +315,116 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     return () => unsubscribe();
   }, []);
 
+  // ✅ Force load tasks from localStorage on component mount (for page refresh)
+  useEffect(() => {
+    const loadTasksOnMount = () => {
+      try {
+        const storedTasks = localStorage.getItem("dashboardTasks");
+        console.log("🔄 Loading tasks on mentor dashboard mount:", storedTasks);
+        
+        if (storedTasks) {
+          const parsedTasks = JSON.parse(storedTasks);
+          if (Array.isArray(parsedTasks) && parsedTasks.length > 0) {
+            const normalizedTasks = parsedTasks.map(task => ({
+              ...task,
+              volunteersList: Array.isArray(task.volunteersList) ? task.volunteersList : [],
+              status: task.status || "Ready",
+              required: task.required || task.memberNumber || 1
+            }));
+            console.log("✅ Mentor Dashboard - Loaded tasks with volunteers:", normalizedTasks);
+            setTasks(normalizedTasks);
+          } else {
+            console.log("⚠️ No valid tasks found in localStorage");
+            setTasks([]);
+          }
+        } else {
+          console.log("⚠️ No tasks in localStorage");
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error("❌ Error loading tasks on mount:", error);
+        setTasks([]);
+      }
+    };
+    
+    // Load immediately on mount
+    loadTasksOnMount();
+    
+    // Also load after a short delay to catch any async updates
+    setTimeout(loadTasksOnMount, 500);
+  }, []); // Empty dependency - run only once on mount
+
+  // ✅ Enhanced volunteer sync from localStorage (for volunteer updates from student dashboard)
+  useEffect(() => {
+    const syncTasksFromStorage = () => {
+      try {
+        const currentStoredTasks = localStorage.getItem("dashboardTasks");
+        console.log("🔄 Mentor Dashboard - Checking localStorage for updates:", currentStoredTasks);
+        
+        if (currentStoredTasks) {
+          const parsedTasks = JSON.parse(currentStoredTasks);
+          if (Array.isArray(parsedTasks)) {
+            const normalizedTasks = parsedTasks.map(task => ({
+              ...task,
+              volunteersList: Array.isArray(task.volunteersList) ? task.volunteersList : [],
+              status: task.status || "Ready",
+              required: task.required || task.memberNumber || 1
+            }));
+            
+            // Always update to ensure fresh volunteer data
+            console.log("✅ Mentor Dashboard - Syncing tasks with volunteers:", normalizedTasks);
+            setTasks(normalizedTasks);
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error syncing tasks from localStorage:", error);
+      }
+    };
+
+    // ✅ Initial sync on component mount - this is crucial for refresh
+    syncTasksFromStorage();
+
+    // ✅ Listen for localStorage changes (cross-tab syncing)
+    const handleStorageChange = (e) => {
+      if (e.key === "dashboardTasks") {
+        console.log("🔄 Mentor Dashboard - localStorage dashboardTasks changed externally, syncing...");
+        syncTasksFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // ✅ More frequent checking for same-tab updates (volunteer changes)
+    const interval = setInterval(() => {
+      const currentStoredTasks = localStorage.getItem("dashboardTasks");
+      const currentInMemoryTasks = JSON.stringify(tasks);
+      
+      if (currentStoredTasks && currentStoredTasks !== currentInMemoryTasks) {
+        console.log("🔄 Mentor Dashboard - Periodic sync: volunteer data changed, updating...");
+        syncTasksFromStorage();
+      }
+    }, 1000); // ✅ Check every 1 second for faster volunteer updates
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [setTasks]); // Remove tasks from dependency to prevent infinite loops
+
+  // --- Notifications ---
+  useEffect(() => {
+    if (tasks && tasks.length > 0) {
+      setNotifications((prev) => {
+        const existingIds = prev.map((n) => n.id);
+        const newNotifications = tasks
+          .filter((t) => !existingIds.includes(t.id))
+          .map((t) => ({ id: t.id, title: t.title, time: Date.now() }));
+        return [...prev, ...newNotifications];
+      });
+      setBlinkBell(true);
+      setTimeout(() => setBlinkBell(false), 3000);
+    }
+  }, [tasks]);
   
 
   // Normalize tasks: ensure unique ids for tasks coming from older versions/localStorage
@@ -324,8 +449,25 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
     
     if (confirmDelete) {
       const updatedTasks = tasks.filter((task) => task.id !== taskId);
+      
+      // Update state first
       setTasks(updatedTasks);
-      localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+      
+      // Then update localStorage with retry mechanism
+      try {
+        localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+        console.log("Task deleted and localStorage updated:", taskId);
+      } catch (error) {
+        console.error("Error updating localStorage:", error);
+        // Retry once
+        setTimeout(() => {
+          try {
+            localStorage.setItem("dashboardTasks", JSON.stringify(updatedTasks));
+          } catch (retryError) {
+            console.error("Retry failed:", retryError);
+          }
+        }, 100);
+      }
       
       // Trigger storage event to sync with other tabs/windows
       window.dispatchEvent(new StorageEvent('storage', {
@@ -334,7 +476,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
         oldValue: JSON.stringify(tasks)
       }));
       
-      console.log("Task deleted:", taskId);
+      console.log("Task permanently deleted:", taskId);
     }
   };
 
@@ -443,7 +585,7 @@ export default function MentorDashboard({ tasks, setTasks, currentUser }) {
               <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
                 <Link
                   to="/mentor-dashboard"
-                  className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 rounded-t-xl font-semibold"
+                  className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 rounded-t-xl font-semibold bg-blue-50 text-blue-600"
                   onClick={() => setMenuOpen(false)}
                 >
                   <Home className="w-5 h-5 mr-2" /> Dashboard

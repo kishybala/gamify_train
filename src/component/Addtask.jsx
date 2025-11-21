@@ -8,11 +8,19 @@ import { db } from "../firebase"; // Firebase config file
 export default function AddTask({ currentUser, tasks, setTasks }) {
   const navigate = useNavigate();
 
-  // Get current user to determine which dashboard to return to
-  const dashboardPath = currentUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
+  // Get actual current user from localStorage to ensure correct role
+  const storedUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const actualUser = currentUser || storedUser;
+  
+  // Debug log to check user role
+  console.log("AddTask - User Role:", actualUser.role);
+  console.log("AddTask - Full User:", actualUser);
+
+  // Get current user to determine which dashboard to return to - ensure mentor goes to mentor dashboard
+  const dashboardPath = actualUser.role === "Mentor" ? "/mentor-dashboard" : "/dashboard";
 
   // Access control
-  if (!(currentUser.role === "Council" || currentUser.role === "Mentor")) {
+  if (!(actualUser.role === "Council" || actualUser.role === "Mentor")) {
     return (
       <div className="min-h-screen flex items-center justify-center text-xl font-bold text-red-600">
         You do not have access to add tasks.
@@ -68,9 +76,10 @@ const handleSubmit = async () => {
       return updated;
     });
 
+    // ✅ Show success popup
     setStatusMessage({
       type: "success",
-      text: `Task "${taskName}" added successfully!`
+      text: `🎉 Congratulations! Task "${taskName}" has been created successfully and assigned to ${assignedTo} department!`
     });
 
     // ✅ Reset form
@@ -81,29 +90,38 @@ const handleSubmit = async () => {
     setAssignedTo("");
     setDeadline("");
     setMemberNumber("");
-    setTimeout(() => setStatusMessage(null), 4000);
+    
+    // Show success message briefly then redirect to mentor dashboard
+    setTimeout(() => {
+      setStatusMessage(null);
+      navigate("/mentor-dashboard");
+    }, 2000); // Redirect after 2 seconds
   } catch (error) {
     console.error("Error adding task: ", error);
     setStatusMessage({
       type: "error",
-      text: "Failed to add task. Try again!"
+      text: "❌ Failed to add task. Please try again!"
     });
   }
 };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-r from-purple-700 via-pink-600 to-red-500 font-sans">
-      <div className="w-full max-w-xl bg-white p-6 md:p-8 rounded-3xl shadow-2xl text-center my-8 transition-all">
-        <h1 className="text-4xl font-extrabold text-indigo-600 mb-6 flex justify-center items-center">
-          Add Task <Zap className="ml-3 w-8 h-8 text-yellow-500 animate-bounce" />
-        </h1>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 font-sans">
+      <div className="w-full max-w-xl bg-white p-8 md:p-10 rounded-3xl shadow-2xl text-center my-8 transition-all transform hover:scale-102 border border-gray-100">
+        <div className="mb-8">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600 mb-2 flex justify-center items-center">
+            ✨ Create New Task <Zap className="ml-3 w-8 h-8 text-yellow-500 animate-pulse" />
+          </h1>
+          <p className="text-gray-600 text-sm">Design amazing tasks for your team</p>
+        </div>
 
         {statusMessage && (
           <div
-            className={`p-4 mb-6 rounded-lg font-semibold ${statusMessage.type === "success"
-                ? "bg-green-100 text-green-700 border border-green-300"
-                : "bg-red-100 text-red-700 border border-red-300"
-              }`}
+            className={`p-4 mb-6 rounded-xl font-semibold text-center shadow-lg transform transition-all duration-300 ${
+              statusMessage.type === "success"
+                ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-300 animate-pulse"
+                : "bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-2 border-red-300"
+            }`}
           >
             {statusMessage.text}
           </div>
@@ -168,15 +186,15 @@ const handleSubmit = async () => {
           <div className="flex flex-col space-y-3 mt-6">
             <button
               onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold py-3 px-6 rounded-2xl shadow-lg hover:scale-105 transition-transform"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl"
             >
-              Submit Task
+              🚀 Create Task
             </button>
             <button
-              onClick={() => navigate('/mentor-dashboard')}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-2xl"
+              onClick={() => navigate("/mentor-dashboard")}
+              className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
             >
-              ← Back to Dashboard
+              ← Back to Mentor Dashboard
             </button>
           </div>
         </div>

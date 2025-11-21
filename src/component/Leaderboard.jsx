@@ -163,9 +163,9 @@ export default function Leaderboard() {
   const topThreeUsers = filteredUsers.slice(0, 3);
 
   return (
-    <div className="min-h-screen font-inter bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Navbar/Header */}
-      <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center">
+    <div className="min-h-screen font-inter bg-gray-50">
+      {/* ✅ Mentor Dashboard Style Header */}
+      <header className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl border border-gray-100 mb-6 flex justify-between items-center transform transition-all hover:shadow-2xl duration-300">
         <div className="flex items-center space-x-4">
           <div className="relative w-30 h-30">
             <img
@@ -173,12 +173,25 @@ export default function Leaderboard() {
               alt="Profile"
               className="w-30 h-30 rounded-full object-cover border-2 border-gray-300 transform hover:scale-105 transition-all duration-300"
             />
+            <label
+              htmlFor="profileUpload"
+              className="absolute bottom-0 right-0 bg-blue-500 text-white w-6 h-6 rounded-full flex items-center justify-center cursor-pointer text-xs"
+            >
+              ✏️
+            </label>
+            <input
+              type="file"
+              id="profileUpload"
+              accept="image/*"
+              onChange={handleProfileChange}
+              className="hidden"
+            />
             <button onClick={() => { setEditName(currentUserData.name || ""); setShowEditProfileModal(true); }} className="absolute bottom-0 right-0 bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-sm hover:bg-blue-600 transition" title="Edit profile">✏️</button>
             <input type="file" id="profileUpload" accept="image/*" onChange={handleProfileChange} className="hidden" />
           </div>
           <div>
             <div className="text-xl font-bold text-gray-800">
-              Welcome, <span className="text-green-600">{currentUserData.name}</span>!
+              Welcome, <span className={currentUserData.role === "Mentor" ? "text-blue-600" : "text-green-600"}>{currentUserData.name}</span>!
             </div>
             <span className="text-sm text-gray-500">({currentUserData.role})</span>
           </div>
@@ -187,6 +200,8 @@ export default function Leaderboard() {
         <div className="flex items-center space-x-4">
           {
             // If the logged in user is a Mentor, hide the points pill and show a simple time-period toggle.
+
+          
             currentUserData.role === 'Mentor' ? (
               <div className="flex items-center space-x-2">
                 <button
@@ -209,7 +224,8 @@ export default function Leaderboard() {
           <div className="relative">
             <button 
               onClick={() => setSearchOpen(!searchOpen)} 
-              className="p-2 rounded-full hover:bg-gray-100 transition"
+              className="flex items-center text-gray-600 hover:text-blue-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+              title="Search Users"
             >
               <Search className="w-6 h-6" />
             </button>
@@ -217,21 +233,129 @@ export default function Leaderboard() {
 
           {/* Menu */}
           <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full hover:bg-gray-100 transition">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center text-gray-600 hover:text-blue-500 transition duration-150 p-2 rounded-full hover:bg-gray-100"
+            >
               <Menu className="w-6 h-6" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-2xl border border-gray-200 z-20">
-                <Link to={currentUserData.role === "Mentor" ? "/mentor-dashboard" : "/dashboard"} className="flex items-center px-4 py-3 hover:bg-green-50 font-semibold transition"><Home className="w-5 h-5 mr-2" /> Dashboard</Link>
-                <Link to="/leaderboard" className="flex items-center px-4 py-3 hover:bg-blue-50 font-semibold transition"><Trophy className="w-5 h-5 mr-2" /> Leaderboard</Link>
-                {(currentUserData.role === "Council" || currentUserData.role === "Mentor") && (
-                  <Link to="/addtask" className="flex items-center px-4 py-3 hover:bg-pink-50 font-semibold transition"><User className="w-5 h-5 mr-2" /> Add Task</Link>
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                {/* Show different menu based on role */}
+                {currentUserData.role === "Mentor" ? (
+                  <>
+                    <Link
+                      to="/mentor-dashboard"
+                      className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 rounded-t-xl font-semibold"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Home className="w-5 h-5 mr-2" /> Dashboard
+                    </Link>
+                    <Link
+                      to="/addtask"
+                      className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <User className="w-5 h-5 mr-2" /> Add Task
+                    </Link>
+                    <Link
+                      to="/Point"
+                      className="flex items-center px-4 py-3 hover:bg-yellow-50 hover:text-yellow-600 font-semibold"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Zap className="w-5 h-5 mr-2" /> Give Points
+                    </Link>
+                    <Link
+                      to="/badges"
+                      className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Award className="w-5 h-5 mr-2" /> Badges
+                    </Link>
+                    <Link
+                      to="/leaderboard"
+                      className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold bg-green-50 text-green-600"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Trophy className="w-5 h-5 mr-2" /> Leaderboard
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/dashboard" 
+                      className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold transition"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Home className="w-5 h-5 mr-2" /> Dashboard
+                    </Link>
+                    <Link 
+                      to="/badges" 
+                      className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold transition"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Award className="w-5 h-5 mr-2" /> Badges
+                    </Link>
+                    <Link 
+                      to="/leaderboard" 
+                      className="flex items-center px-4 py-3 hover:bg-blue-50 hover:text-blue-600 font-semibold bg-blue-50 text-blue-600 transition"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <Trophy className="w-5 h-5 mr-2" /> Leaderboard
+                    </Link>
+                    {(currentUserData.role === "Council") && (
+                      <Link 
+                        to="/addtask" 
+                        className="flex items-center px-4 py-3 hover:bg-pink-50 hover:text-pink-600 font-semibold transition"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <User className="w-5 h-5 mr-2" /> Add Task
+                      </Link>
+                    )}
+                  </>
                 )}
-                <button onClick={handleLogout} className="flex items-center px-4 py-3 w-full text-left hover:bg-red-50 font-semibold transition"><LogOut className="w-5 h-5 mr-2"/> Logout</button>
               </div>
             )}
           </div>
 
+          {/* Notification Bell */}
+          <div className="relative">
+            <button
+              onClick={() => setBellOpen(!bellOpen)}
+              className={`flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100 ${
+                blinkBell ? "animate-bounce" : ""
+              }`}
+            >
+              <Bell className="w-6 h-6" />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+            {bellOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
+                <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
+                <div className="max-h-60 overflow-y-auto">
+                  {notifications.length > 0 ? (
+                    notifications
+                      .slice()
+                      .reverse()
+                      .map((n) => (
+                        <div
+                          key={n.id}
+                          className="px-4 py-2 text-sm border-b last:border-b-0"
+                        >
+                          {n.title} added
+                        </div>
+                      ))
+                  ) : (
+                    <p className="px-4 py-2 text-gray-500">No notifications</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
           
         </div>
       </header>
@@ -333,9 +457,11 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {/* --- Leaderboard Content --- */}
-      <div className="min-h-screen p-6 bg-gradient-to-b from-gray-50 to-green-50">
-        <h1 className="text-3xl font-extrabold text-center mb-6 text-gray-800">🏆 Leaderboard</h1>
+      {/* ✅ Leaderboard Content with consistent styling */}
+      <div className="p-4 sm:p-6 bg-white rounded-2xl shadow-xl border border-gray-100">
+        <h2 className="text-3xl font-extrabold text-gray-800 mb-6">
+          🏆 Leaderboard
+        </h2>
 
 
 
