@@ -9,7 +9,6 @@ import {
   User,
   Zap,
   Menu,
-  Bell,
   X,
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
@@ -23,11 +22,8 @@ const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_
 
 
 
-// Mentor Dashboard Header Component
 const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEditProfile }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [bellOpen, setBellOpen] = useState(false);
   
   // Helper to produce a display name: prefer `name`, then derive from email local-part
   const getDisplayName = (user) => {
@@ -98,20 +94,6 @@ const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEd
                 <User className="w-5 h-5 mr-2" /> Add Task
               </Link>
               <Link
-                to="/Point"
-                className="flex items-center px-4 py-3 hover:bg-yellow-50 hover:text-yellow-600 font-semibold bg-yellow-50 text-yellow-600"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Zap className="w-5 h-5 mr-2" /> Give Points
-              </Link>
-              <Link
-                to="/badges"
-                className="flex items-center px-4 py-3 hover:bg-purple-50 hover:text-purple-600 font-semibold"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Award className="w-5 h-5 mr-2" /> Badges
-              </Link>
-              <Link
                 to="/leaderboard"
                 className="flex items-center px-4 py-3 hover:bg-green-50 hover:text-green-600 font-semibold"
                 onClick={() => setMenuOpen(false)}
@@ -128,42 +110,7 @@ const MentorHeader = ({ currentUser, profilePic, onProfileChange, onLogout, onEd
           )}
         </div>
 
-        {/* Notification Bell */}
-        <div className="relative">
-          <button
-            onClick={() => setBellOpen(!bellOpen)}
-            className="flex items-center text-gray-600 transition duration-150 p-2 rounded-full hover:bg-gray-100"
-          >
-            <Bell className="w-6 h-6" />
-            {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                {notifications.length}
-              </span>
-            )}
-          </button>
-          {bellOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-20">
-              <h3 className="px-4 py-2 font-bold border-b">Notifications</h3>
-              <div className="max-h-60 overflow-y-auto">
-                {notifications.length > 0 ? (
-                  notifications
-                    .slice()
-                    .reverse()
-                    .map((n, index) => (
-                      <div
-                        key={index}
-                        className="px-4 py-2 text-sm border-b last:border-b-0"
-                      >
-                        {n.message}
-                      </div>
-                    ))
-                ) : (
-                  <p className="px-4 py-2 text-gray-500">No notifications</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Empty space for layout balance */}
       </div>
     </header>
   );
@@ -365,11 +312,28 @@ const useStudents = (db, isAuthReady) => {
         // Agar aapke students 'users' collection mein hain toh yeh path use karein:
         const studentsCollectionRef = collection(db, 'users');
         const studentQuery = query(studentsCollectionRef);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        const unsubscribe = onSnapshot(studentQuery, (snapshot) => {
-            const studentList = snapshot.docs
-                .map(doc => {
-                    const data = doc.data();
+        const unsubscribe = onSnapshot(studentQuery, async (snapshot) => {
+            try {
+                // Fetch from artifacts collection (where mentor assigns points)
+                const artifactsStudentsRef = collection(db, `artifacts/${appId}/public/data/students`);
+                const artifactsSnapshot = await getDocs(artifactsStudentsRef);
+                const artifactsStudents = {};
+                
+                artifactsSnapshot.docs.forEach(doc => {
+                    artifactsStudents[doc.id] = {
+                        totalPoints: doc.data().totalPoints || 0,
+                        transactions: doc.data().transactions || []
+                    };
+                });
+
+                console.log("Artifacts students data:", artifactsStudents);
+
+                const studentList = snapshot.docs
+                    .map(doc => {
+                        const data = doc.data();
+                        const artifactsData = artifactsStudents[doc.id] || {};
                     
                     // If student doesn't have profile pic, add a demo one based on their name
                     if (!data.profilePic || data.profilePic.includes('ui-avatars.com')) {
@@ -385,21 +349,32 @@ const useStudents = (db, isAuthReady) => {
                         }
                     }
                     
-                    return { id: doc.id, ...data, transactions: data.transactions || [] };
+                    // Merge artifacts data with user data - prioritize artifacts totalPoints
+                    return {
+                        id: doc.id,
+                        ...data,
+                        totalPoints: artifactsData.totalPoints !== undefined ? artifactsData.totalPoints : (data.totalPoints || data.points || 0),
+                        transactions: artifactsData.transactions || data.transactions || []
+                    };
                 })
                 .filter(user => user.role !== "Mentor"); // Filter out mentors from points section
 
-            // Points ke hisaab se sort karein
-            studentList.sort((a, b) => b.totalPoints - a.totalPoints);
+                // Points ke hisaab se sort karein
+                studentList.sort((a, b) => b.totalPoints - a.totalPoints);
 
-            // Rank assign karein
-            const rankedList = studentList.map((student, index) => ({
-                ...student,
-                rank: index + 1
-            }));
+                // Rank assign karein
+                const rankedList = studentList.map((student, index) => ({
+                    ...student,
+                    rank: index + 1
+                }));
 
-            setStudents(rankedList);
-            setIsLoading(false);
+                console.log("Students loaded with points:", rankedList);
+                setStudents(rankedList);
+                setIsLoading(false);
+            } catch (error) {
+                console.error("Error loading students with artifacts data:", error);
+                setIsLoading(false);
+            }
         }, (error) => {
             console.error("Listening for students failed:", error);
             setIsLoading(false);
@@ -1319,7 +1294,7 @@ const StudentCard = ({ student, onClick, isSelected, isAnimating }) => {
                         <h3 className="font-bold text-gray-800 text-lg leading-tight">{student.name}</h3>
                         {student.rank === 1 && (
                             <span className="text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-                                🏆 Leader
+                                
                             </span>
                         )}
                     </div>
@@ -1426,17 +1401,40 @@ const App = () => {
             const studentsSnapshot = await getDocs(studentsQuery);
             
             const batch = [];
+            
+            // Reset points in BOTH locations
             studentsSnapshot.docs.forEach((docSnapshot) => {
-                const studentRef = doc(db, "users", docSnapshot.id);
-                batch.push(updateDoc(studentRef, {
+                // 1. Reset in users collection
+                const userRef = doc(db, "users", docSnapshot.id);
+                batch.push(updateDoc(userRef, {
                     points: 0,
                     totalPoints: 0,
                     transactions: []
                 }));
+                
+                // 2. Also reset in artifacts/{appId}/public/data/students collection (where mentor assigns points)
+                const studentArtifactsRef = doc(db, `artifacts/${appId}/public/data/students`, docSnapshot.id);
+                batch.push(setDoc(studentArtifactsRef, {
+                    totalPoints: 0,
+                    transactions: [],
+                    name: docSnapshot.data().name || '',
+                    email: docSnapshot.data().email || null,
+                    profileImageUrl: docSnapshot.data().profileImageUrl || null,
+                    lastUpdated: Date.now(),
+                }, { merge: false })); // Use merge: false to overwrite completely
             });
 
             // Execute all updates
             await Promise.all(batch);
+            
+            // Update local state
+            setStudents(prevStudents => 
+                prevStudents.map(student => ({
+                    ...student,
+                    totalPoints: 0,
+                    transactions: []
+                }))
+            );
             
             setNotification({
                 type: 'success',

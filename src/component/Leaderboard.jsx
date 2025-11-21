@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 import { Trophy, LogOut, Home, User, Zap, Menu, Search, X } from 'lucide-react';
@@ -78,19 +78,51 @@ export default function Leaderboard() {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=${hexColor}&color=ffffff&size=100&format=svg`;
   };
   const [timePeriod, setTimePeriod] = useState("monthly");
+  
+  // --- GLOBAL VARIABLES (Mandatory) ---
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
   // Fetch users from Firestore
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         console.log("Starting to fetch users...");
-        const q = query(collection(db, "users"), orderBy("points", "desc"));
-        const querySnapshot = await getDocs(q);
-        console.log("Users query successful, processing data...");
-        const usersList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })).filter(user => user.role !== "Mentor"); // Filter out mentors from leaderboard
+        
+        // Fetch student data from artifacts collection (where mentor assigns points)
+        const artifactsStudentsRef = collection(db, `artifacts/${appId}/public/data/students`);
+        const artifactsSnapshot = await getDocs(artifactsStudentsRef);
+        const artifactsStudents = {};
+        
+        artifactsSnapshot.docs.forEach(doc => {
+          artifactsStudents[doc.id] = {
+            totalPoints: doc.data().totalPoints || 0,
+            transactions: doc.data().transactions || []
+          };
+        });
+        
+        console.log("Artifacts students data:", artifactsStudents);
+        
+        // Fetch users from users collection and merge with artifacts data
+        const usersQuery = query(collection(db, "users"));
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        const usersList = usersSnapshot.docs
+          .map(doc => {
+            const userData = doc.data();
+            const artifactsData = artifactsStudents[doc.id] || {};
+            
+            return {
+              id: doc.id,
+              ...userData,
+              // Use totalPoints from artifacts if available, otherwise use points from users collection
+              points: artifactsData.totalPoints !== undefined ? artifactsData.totalPoints : (userData.points || 0),
+              totalPoints: artifactsData.totalPoints || userData.totalPoints || 0,
+              transactions: artifactsData.transactions || userData.transactions || []
+            };
+          })
+          .filter(user => user.role !== "Mentor") // Filter out mentors from leaderboard
+          .sort((a, b) => b.points - a.points); // Sort by points descending
+        
         console.log("Students fetched:", usersList.length, "users (mentors excluded)");
         setUsers(usersList);
       } catch (error) {
@@ -100,7 +132,7 @@ export default function Leaderboard() {
     };
 
     fetchUsers();
-  }, []);
+  }, [appId]);
 
   // Listen for profile picture updates from other components
   useEffect(() => {

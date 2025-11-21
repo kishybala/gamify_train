@@ -157,11 +157,20 @@ export default function UserProfile() {
       <div className="max-w-4xl mx-auto mb-8">
         <div className="flex items-center gap-4 mb-6">
           <button 
-            onClick={() => navigate("/leaderboard")}
+            onClick={() => {
+              // Navigate based on user role
+              if (currentUserData.role === "Mentor" || currentUserData.role === "Council") {
+                navigate("/mentor-dashboard");
+              } else {
+                navigate("/leaderboard");
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back to Leaderboard</span>
+            <span className="font-medium">
+              {currentUserData.role === "Mentor" || currentUserData.role === "Council" ? "Back to Dashboard" : "Back to Leaderboard"}
+            </span>
           </button>
           
           <div className="text-2xl font-bold text-gray-800">
@@ -423,21 +432,43 @@ export default function UserProfile() {
             
             {/* Quick Actions */}
             <div className="mt-8 flex flex-wrap gap-4 justify-center">
-              <Link 
-                to="/leaderboard" 
-                className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-300 hover:scale-105 shadow-lg"
-              >
-                <Trophy className="w-5 h-5" />
-                View Leaderboard
-              </Link>
-              
-              <Link 
-                to="/dashboard" 
-                className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-300 hover:scale-105 shadow-lg"
-              >
-                <Home className="w-5 h-5" />
-                Go to Dashboard
-              </Link>
+              {currentUserData.role === "Mentor" || currentUserData.role === "Council" ? (
+                <>
+                  <Link 
+                    to="/mentor-dashboard" 
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                  >
+                    <Home className="w-5 h-5" />
+                    Back to Dashboard
+                  </Link>
+                  
+                  <Link 
+                    to="/leaderboard" 
+                    className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                  >
+                    <Trophy className="w-5 h-5" />
+                    View Leaderboard
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/leaderboard" 
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                  >
+                    <Trophy className="w-5 h-5" />
+                    View Leaderboard
+                  </Link>
+                  
+                  <Link 
+                    to="/dashboard" 
+                    className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all duration-300 hover:scale-105 shadow-lg"
+                  >
+                    <Home className="w-5 h-5" />
+                    Go to Dashboard
+                  </Link>
+                </>
+              )}
             </div>
             
           </div>
